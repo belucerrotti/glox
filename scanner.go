@@ -20,10 +20,14 @@ const (
 	RIGHT_BRACE
 
 	EQUALS
+	EQUALS_EQUALS
 	NOTEQUAL
 	BANG
+	BANG_EQUALS
 	LESS_THAN
+	LESS_EQUALS
 	GREATER_THAN
+	GREATER_EQUALS
 	MOD
 
 	COMMA
@@ -53,12 +57,16 @@ var tokenNames = map[TokenType]string{
 	LEFT_BRACE:  "LEFT_BRACE",
 	RIGHT_BRACE: "RIGHT_BRACE",
 
-	EQUALS:       "EQUALS",
-	NOTEQUAL:     "NOTEQUAL",
-	BANG:         "BANG",
-	LESS_THAN:    "LESS_THAN",
-	GREATER_THAN: "GREATER_THAN",
-	MOD:          "MOD",
+	EQUALS:         "EQUALS",
+	EQUALS_EQUALS:  "EQUALS_EQUALS",
+	NOTEQUAL:       "NOTEQUAL",
+	BANG:           "BANG",
+	BANG_EQUALS:    "BANG_EQUALS",
+	LESS_THAN:      "LESS_THAN",
+	LESS_EQUALS:    "LESS_EQUALS",
+	GREATER_THAN:   "GREATER_THAN",
+	GREATER_EQUALS: "GREATER_EQUALS",
+	MOD:            "MOD",
 
 	COMMA:     "COMMA",
 	DOT:       "DOT",
@@ -134,15 +142,42 @@ func (s *scanner) scanToken(content []byte, index int) (token, int, error) {
 	case ']':
 		t = token{tokenType: RIGHT_BRACKET, name: tokenNames[RIGHT_BRACKET], value: string(content[index])}
 	case '=':
-		t = token{tokenType: EQUALS, name: tokenNames[EQUALS], value: string(content[index])}
+		if index+1 < len(content) && content[index+1] == '=' {
+			t = token{tokenType: EQUALS_EQUALS, name: tokenNames[EQUALS_EQUALS], value: "=="}
+			index++
+		} else {
+			t = token{tokenType: EQUALS, name: tokenNames[EQUALS], value: string(content[index])}
+		}
 	case '!':
-		t = token{tokenType: BANG, name: tokenNames[BANG], value: string(content[index])}
+		if index+1 < len(content) && content[index+1] == '=' {
+			t = token{tokenType: BANG_EQUALS, name: tokenNames[BANG_EQUALS], value: "!="}
+			index++
+		} else {
+			t = token{tokenType: BANG, name: tokenNames[BANG], value: string(content[index])}
+		}
 	case '<':
-		t = token{tokenType: LESS_THAN, name: tokenNames[LESS_THAN], value: string(content[index])}
+		if index+1 < len(content) && content[index+1] == '=' {
+			t = token{tokenType: LESS_EQUALS, name: tokenNames[LESS_EQUALS], value: "<="}
+			index++
+		} else {
+			t = token{tokenType: LESS_THAN, name: tokenNames[LESS_THAN], value: string(content[index])}
+		}
 	case '>':
-		t = token{tokenType: GREATER_THAN, name: tokenNames[GREATER_THAN], value: string(content[index])}
+		if index+1 < len(content) && content[index+1] == '=' {
+			t = token{tokenType: GREATER_EQUALS, name: tokenNames[GREATER_EQUALS], value: ">="}
+			index++
+		} else {
+			t = token{tokenType: GREATER_THAN, name: tokenNames[GREATER_THAN], value: string(content[index])}
+		}
 	case '1', '2', '3', '4', '5', '6', '7', '8', '9', '0':
-		t = token{tokenType: NUMBER, name: tokenNames[NUMBER], value: string(content[index]), valueInt: int(content[index]) - int('0')}
+		for index < len(content) && (content[index] >= '0' && content[index] <= '9') {
+			t.value += string(content[index])
+			t.valueInt = t.valueInt*10 + int(content[index]) - int('0')
+			index++
+		}
+		t.tokenType = NUMBER
+		t.name = tokenNames[NUMBER]
+		index--
 	case ',':
 		t = token{tokenType: COMMA, name: tokenNames[COMMA], value: string(content[index])}
 	case '.':
