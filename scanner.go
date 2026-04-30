@@ -141,6 +141,14 @@ func (s *scanner) scanToken(content []byte, index int) (token, int, error) {
 		t = token{tokenType: LEFT_BRACKET, name: tokenNames[LEFT_BRACKET], value: string(content[index])}
 	case ']':
 		t = token{tokenType: RIGHT_BRACKET, name: tokenNames[RIGHT_BRACKET], value: string(content[index])}
+	case ',':
+		t = token{tokenType: COMMA, name: tokenNames[COMMA], value: string(content[index])}
+	case '.':
+		t = token{tokenType: DOT, name: tokenNames[DOT], value: string(content[index])}
+	case ';':
+		t = token{tokenType: SEMICOLON, name: tokenNames[SEMICOLON], value: string(content[index])}
+	case ':':
+		t = token{tokenType: COLON, name: tokenNames[COLON], value: string(content[index])}
 	case '=':
 		if index+1 < len(content) && content[index+1] == '=' {
 			t = token{tokenType: EQUALS_EQUALS, name: tokenNames[EQUALS_EQUALS], value: "=="}
@@ -169,23 +177,6 @@ func (s *scanner) scanToken(content []byte, index int) (token, int, error) {
 		} else {
 			t = token{tokenType: GREATER_THAN, name: tokenNames[GREATER_THAN], value: string(content[index])}
 		}
-	case '1', '2', '3', '4', '5', '6', '7', '8', '9', '0':
-		for index < len(content) && (content[index] >= '0' && content[index] <= '9') {
-			t.value += string(content[index])
-			t.valueInt = t.valueInt*10 + int(content[index]) - int('0')
-			index++
-		}
-		t.tokenType = NUMBER
-		t.name = tokenNames[NUMBER]
-		index--
-	case ',':
-		t = token{tokenType: COMMA, name: tokenNames[COMMA], value: string(content[index])}
-	case '.':
-		t = token{tokenType: DOT, name: tokenNames[DOT], value: string(content[index])}
-	case ';':
-		t = token{tokenType: SEMICOLON, name: tokenNames[SEMICOLON], value: string(content[index])}
-	case ':':
-		t = token{tokenType: COLON, name: tokenNames[COLON], value: string(content[index])}
 	case '"':
 		start := index + 1
 		end := start
@@ -197,7 +188,15 @@ func (s *scanner) scanToken(content []byte, index int) (token, int, error) {
 		}
 		t = token{tokenType: STRING, name: tokenNames[STRING], value: string(content[start:end])}
 		index = end
-
+	case '1', '2', '3', '4', '5', '6', '7', '8', '9', '0':
+		for index < len(content) && (content[index] >= '0' && content[index] <= '9') {
+			t.value += string(content[index])
+			t.valueInt = t.valueInt*10 + int(content[index]) - int('0')
+			index++
+		}
+		t.tokenType = NUMBER
+		t.name = tokenNames[NUMBER]
+		index--
 	default:
 		t = token{value: string(content[index]), valueInt: int(content[index]) - int('0')}
 	}
