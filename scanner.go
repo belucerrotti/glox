@@ -40,6 +40,24 @@ const (
 
 	NUMBER
 	STRING
+	IDENTIFIER
+
+	AND
+	CLASS
+	ELSE
+	FALSE
+	FOR
+	FUN
+	IF
+	NIL
+	OR
+	PRINT
+	RETURN
+	SUPER
+	THIS
+	TRUE
+	VAR
+	WHILE
 )
 
 var tokenNames = map[TokenType]string{
@@ -76,8 +94,45 @@ var tokenNames = map[TokenType]string{
 	AMPERSAND: "AMPERSAND",
 	STAR:      "STAR",
 
-	NUMBER: "NUMBER",
-	STRING: "STRING",
+	NUMBER:     "NUMBER",
+	STRING:     "STRING",
+	IDENTIFIER: "IDENTIFIER",
+
+	AND:    "AND",
+	CLASS:  "CLASS",
+	ELSE:   "ELSE",
+	FALSE:  "FALSE",
+	FOR:    "FOR",
+	FUN:    "FUN",
+	IF:     "IF",
+	NIL:    "NIL",
+	OR:     "OR",
+	PRINT:  "PRINT",
+	RETURN: "RETURN",
+	SUPER:  "SUPER",
+	THIS:   "THIS",
+	TRUE:   "TRUE",
+	VAR:    "VAR",
+	WHILE:  "WHILE",
+}
+
+var keywords = map[string]TokenType{
+	"and":    AND,
+	"class":  CLASS,
+	"else":   ELSE,
+	"false":  FALSE,
+	"for":    FOR,
+	"fun":    FUN,
+	"if":     IF,
+	"nil":    NIL,
+	"or":     OR,
+	"print":  PRINT,
+	"return": RETURN,
+	"super":  SUPER,
+	"this":   THIS,
+	"true":   TRUE,
+	"var":    VAR,
+	"while":  WHILE,
 }
 
 type token struct {
@@ -188,18 +243,39 @@ func (s *scanner) scanToken(content []byte, index int) (token, int, error) {
 		}
 		t = token{tokenType: STRING, name: tokenNames[STRING], value: string(content[start:end])}
 		index = end
-	case '1', '2', '3', '4', '5', '6', '7', '8', '9', '0':
-		for index < len(content) && (content[index] >= '0' && content[index] <= '9') {
-			t.value += string(content[index])
-			t.valueInt = t.valueInt*10 + int(content[index]) - int('0')
-			index++
-		}
-		t.tokenType = NUMBER
-		t.name = tokenNames[NUMBER]
-		index--
 	default:
-		t = token{value: string(content[index]), valueInt: int(content[index]) - int('0')}
+		if isDigit(content[index]) {
+			for index < len(content) && (content[index] >= '0' && content[index] <= '9') {
+				t.value += string(content[index])
+				t.valueInt = t.valueInt*10 + int(content[index]) - int('0')
+				index++
+			}
+			t.tokenType = NUMBER
+			t.name = tokenNames[NUMBER]
+			index--
+		} else if isAlpha(content[index]) {
+			for index < len(content) && isAlpha(content[index]) {
+				t.value += string(content[index])
+				index++
+			}
+			t.tokenType = IDENTIFIER
+			t.name = tokenNames[IDENTIFIER]
+			if tokenType, ok := keywords[t.value]; ok {
+				t.tokenType = tokenType
+				t.name = tokenNames[tokenType]
+			}
+		} else {
+			return token{}, index, fmt.Errorf("Scanning Error, token/caracter no reconocido: '%c'", content[index])
+		}
 	}
 
 	return t, index, nil
+}
+
+func isDigit(c byte) bool {
+	return c >= '0' && c <= '9'
+}
+
+func isAlpha(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
 }
