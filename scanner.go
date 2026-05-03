@@ -37,6 +37,7 @@ const (
 	QUESTION
 	AMPERSAND
 	STAR
+	COMMENT
 
 	NUMBER
 	STRING
@@ -93,6 +94,7 @@ var tokenNames = map[TokenType]string{
 	QUESTION:  "QUESTION",
 	AMPERSAND: "AMPERSAND",
 	STAR:      "STAR",
+	COMMENT:   "COMMENT",
 
 	NUMBER:     "NUMBER",
 	STRING:     "STRING",
@@ -175,7 +177,18 @@ func (s *scanner) scanToken(content []byte, index int) (token, int, error) {
 	case '-':
 		t = token{tokenType: MINUS, name: tokenNames[MINUS], value: string(content[index])}
 	case '/':
-		t = token{tokenType: DIVIDE, name: tokenNames[DIVIDE], value: string(content[index])}
+		// chequeo si no es un comentario
+		if index+1 < len(content) && content[index+1] == '/' {
+			start := index + 2
+			end := start
+			for end < len(content) && content[end] != '\n' {
+				end++
+			}
+			t = token{tokenType: COMMENT, name: tokenNames[COMMENT], value: string(content[start:end])}
+			index = end
+		} else {
+			t = token{tokenType: DIVIDE, name: tokenNames[DIVIDE], value: string(content[index])}
+		}
 	case '%':
 		t = token{tokenType: PERCENT, name: tokenNames[PERCENT], value: string(content[index])}
 	case '?':
@@ -245,31 +258,53 @@ func (s *scanner) scanToken(content []byte, index int) (token, int, error) {
 		index = end
 	default:
 		if isDigit(content[index]) {
-			for index < len(content) && (content[index] >= '0' && content[index] <= '9') {
-				t.value += string(content[index])
-				t.valueInt = t.valueInt*10 + int(content[index]) - int('0')
-				index++
+			err := scanDigit(content, &index, &t)
+			if err != nil {
+				return token{}, index, err
 			}
-			t.tokenType = NUMBER
-			t.name = tokenNames[NUMBER]
-			index--
 		} else if isAlpha(content[index]) {
-			for index < len(content) && isAlpha(content[index]) {
-				t.value += string(content[index])
-				index++
-			}
-			t.tokenType = IDENTIFIER
-			t.name = tokenNames[IDENTIFIER]
-			if tokenType, ok := keywords[t.value]; ok {
-				t.tokenType = tokenType
-				t.name = tokenNames[tokenType]
-			}
+			scanAlpha(content, &index, &t)
 		} else {
-			return token{}, index, fmt.Errorf("Scanning Error, token/caracter no reconocido: '%c'", content[index])
+			return token{}, index, fmt.Errorf("token/caracter no reconocido: '%c'", content[index])
 		}
 	}
 
 	return t, index, nil
+}
+
+func scanDigit(content []byte, index *int, t *token) error {
+	isDecimal := false
+	for *index < len(content) && ((content[*index] >= '0' && content[*index] <= '9') || content[*index] == '.') {
+		if content[*index] == '.' {
+			if isDecimal {
+				return fmt.Errorf("número con más de un punto decimal")
+			}
+			isDecimal = true
+			t.value += "."
+			(*index)++
+			continue
+		}
+		t.value += string(content[*index])
+		t.valueInt = t.valueInt*10 + int(content[*index]) - int('0')
+		(*index)++
+	}
+	t.tokenType = NUMBER
+	t.name = tokenNames[NUMBER]
+	(*index)--
+	return nil
+}
+
+func scanAlpha(content []byte, index *int, t *token) {
+	for *index < len(content) && isAlpha(content[*index]) {
+		t.value += string(content[*index])
+		(*index)++
+	}
+	t.tokenType = IDENTIFIER
+	t.name = tokenNames[IDENTIFIER]
+	if tokenType, ok := keywords[t.value]; ok {
+		t.tokenType = tokenType
+		t.name = tokenNames[tokenType]
+	}
 }
 
 func isDigit(c byte) bool {
