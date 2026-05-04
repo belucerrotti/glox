@@ -148,132 +148,139 @@ type token struct {
 }
 
 type scanner struct {
-	tokens []token
+	tokens       []token
+	content      []byte
+	currentIndex int
 }
 
 func createScanner() *scanner {
 	return &scanner{
-		tokens: []token{},
+		tokens:       []token{},
+		content:      []byte{},
+		currentIndex: 0,
 	}
 }
 
 func (s *scanner) scan(content []byte) ([]token, error) {
-	var tokens = []token{}
+	s.content = content
 	for i := 0; i < len(content); i++ {
 		if content[i] == ' ' || content[i] == '\t' || content[i] == '\r' || content[i] == '\n' {
 			continue
 		}
-		t, newIndex, err := s.scanToken(content, i)
+		s.currentIndex = i
+		newIndex, err := s.scanTokens()
 		if err != nil {
 			return nil, err
 		}
 		i = newIndex
-		tokens = append(tokens, t)
 	}
-	return tokens, nil
+	return s.tokens, nil
 }
 
-func (s *scanner) scanToken(content []byte, index int) (token, int, error) {
+func (s *scanner) scanTokens() (int, error) {
+	content := s.content
+
 	var t = token{}
-	switch content[index] {
+	switch content[s.currentIndex] {
 	case '+':
-		t = token{tokenType: PLUS, name: tokenNames[PLUS], value: string(content[index])}
+		t = token{tokenType: PLUS, name: tokenNames[PLUS], value: string(content[s.currentIndex])}
 	case '-':
-		t = token{tokenType: MINUS, name: tokenNames[MINUS], value: string(content[index])}
+		t = token{tokenType: MINUS, name: tokenNames[MINUS], value: string(content[s.currentIndex])}
 	case '/':
 		// chequeo si no es un comentario
-		if index+1 < len(content) && content[index+1] == '/' {
-			start := index + 2
+		if s.currentIndex+1 < len(content) && content[s.currentIndex+1] == '/' {
+			start := s.currentIndex + 2
 			end := start
 			for end < len(content) && content[end] != '\n' {
 				end++
 			}
 			t = token{tokenType: COMMENT, name: tokenNames[COMMENT], value: string(content[start:end])}
-			index = end
+			s.currentIndex = end
 		} else {
-			t = token{tokenType: DIVIDE, name: tokenNames[DIVIDE], value: string(content[index])}
+			t = token{tokenType: DIVIDE, name: tokenNames[DIVIDE], value: string(content[s.currentIndex])}
 		}
 	case '%':
-		t = token{tokenType: PERCENT, name: tokenNames[PERCENT], value: string(content[index])}
+		t = token{tokenType: PERCENT, name: tokenNames[PERCENT], value: string(content[s.currentIndex])}
 	case '?':
-		t = token{tokenType: QUESTION, name: tokenNames[QUESTION], value: string(content[index])}
+		t = token{tokenType: QUESTION, name: tokenNames[QUESTION], value: string(content[s.currentIndex])}
 	case '&':
-		t = token{tokenType: AMPERSAND, name: tokenNames[AMPERSAND], value: string(content[index])}
+		t = token{tokenType: AMPERSAND, name: tokenNames[AMPERSAND], value: string(content[s.currentIndex])}
 	case '*':
-		t = token{tokenType: STAR, name: tokenNames[STAR], value: string(content[index])}
+		t = token{tokenType: STAR, name: tokenNames[STAR], value: string(content[s.currentIndex])}
 	case '(':
-		t = token{tokenType: LEFT_PAREN, name: tokenNames[LEFT_PAREN], value: string(content[index])}
+		t = token{tokenType: LEFT_PAREN, name: tokenNames[LEFT_PAREN], value: string(content[s.currentIndex])}
 	case ')':
-		t = token{tokenType: RIGHT_PAREN, name: tokenNames[RIGHT_PAREN], value: string(content[index])}
+		t = token{tokenType: RIGHT_PAREN, name: tokenNames[RIGHT_PAREN], value: string(content[s.currentIndex])}
 	case '{':
-		t = token{tokenType: LEFT_BRACE, name: tokenNames[LEFT_BRACE], value: string(content[index])}
+		t = token{tokenType: LEFT_BRACE, name: tokenNames[LEFT_BRACE], value: string(content[s.currentIndex])}
 	case '}':
-		t = token{tokenType: RIGHT_BRACE, name: tokenNames[RIGHT_BRACE], value: string(content[index])}
+		t = token{tokenType: RIGHT_BRACE, name: tokenNames[RIGHT_BRACE], value: string(content[s.currentIndex])}
 	case '[':
-		t = token{tokenType: LEFT_BRACKET, name: tokenNames[LEFT_BRACKET], value: string(content[index])}
+		t = token{tokenType: LEFT_BRACKET, name: tokenNames[LEFT_BRACKET], value: string(content[s.currentIndex])}
 	case ']':
-		t = token{tokenType: RIGHT_BRACKET, name: tokenNames[RIGHT_BRACKET], value: string(content[index])}
+		t = token{tokenType: RIGHT_BRACKET, name: tokenNames[RIGHT_BRACKET], value: string(content[s.currentIndex])}
 	case ',':
-		t = token{tokenType: COMMA, name: tokenNames[COMMA], value: string(content[index])}
+		t = token{tokenType: COMMA, name: tokenNames[COMMA], value: string(content[s.currentIndex])}
 	case '.':
-		t = token{tokenType: DOT, name: tokenNames[DOT], value: string(content[index])}
+		t = token{tokenType: DOT, name: tokenNames[DOT], value: string(content[s.currentIndex])}
 	case ';':
-		t = token{tokenType: SEMICOLON, name: tokenNames[SEMICOLON], value: string(content[index])}
+		t = token{tokenType: SEMICOLON, name: tokenNames[SEMICOLON], value: string(content[s.currentIndex])}
 	case ':':
-		t = token{tokenType: COLON, name: tokenNames[COLON], value: string(content[index])}
+		t = token{tokenType: COLON, name: tokenNames[COLON], value: string(content[s.currentIndex])}
 	case '=':
-		if index+1 < len(content) && content[index+1] == '=' {
+		if s.currentIndex+1 < len(content) && content[s.currentIndex+1] == '=' {
 			t = token{tokenType: EQUALS_EQUALS, name: tokenNames[EQUALS_EQUALS], value: "=="}
-			index++
+			s.currentIndex++
 		} else {
-			t = token{tokenType: EQUALS, name: tokenNames[EQUALS], value: string(content[index])}
+			t = token{tokenType: EQUALS, name: tokenNames[EQUALS], value: string(content[s.currentIndex])}
 		}
 	case '!':
-		if index+1 < len(content) && content[index+1] == '=' {
+		if s.currentIndex+1 < len(content) && content[s.currentIndex+1] == '=' {
 			t = token{tokenType: NOTEQUAL, name: tokenNames[NOTEQUAL], value: "!="}
-			index++
+			s.currentIndex++
 		} else {
-			t = token{tokenType: BANG, name: tokenNames[BANG], value: string(content[index])}
+			t = token{tokenType: BANG, name: tokenNames[BANG], value: string(content[s.currentIndex])}
 		}
 	case '<':
-		if index+1 < len(content) && content[index+1] == '=' {
+		if s.currentIndex+1 < len(content) && content[s.currentIndex+1] == '=' {
 			t = token{tokenType: LESS_EQUALS, name: tokenNames[LESS_EQUALS], value: "<="}
-			index++
+			s.currentIndex++
 		} else {
-			t = token{tokenType: LESS_THAN, name: tokenNames[LESS_THAN], value: string(content[index])}
+			t = token{tokenType: LESS_THAN, name: tokenNames[LESS_THAN], value: string(content[s.currentIndex])}
 		}
 	case '>':
-		if index+1 < len(content) && content[index+1] == '=' {
+		if s.currentIndex+1 < len(content) && content[s.currentIndex+1] == '=' {
 			t = token{tokenType: GREATER_EQUALS, name: tokenNames[GREATER_EQUALS], value: ">="}
-			index++
+			s.currentIndex++
 		} else {
-			t = token{tokenType: GREATER_THAN, name: tokenNames[GREATER_THAN], value: string(content[index])}
+			t = token{tokenType: GREATER_THAN, name: tokenNames[GREATER_THAN], value: string(content[s.currentIndex])}
 		}
 	case '"':
-		start := index + 1
+		start := s.currentIndex + 1
 		end := start
 		for end < len(content) && content[end] != '"' {
 			end++
 		}
 		if end >= len(content) {
-			return token{}, index, fmt.Errorf("string sin cerrar: falta '\"' de cierre")
+			return s.currentIndex, fmt.Errorf("string sin cerrar: falta '\"' de cierre")
 		}
 		t = token{tokenType: STRING, name: tokenNames[STRING], value: string(content[start:end])}
-		index = end
+		s.currentIndex = end
 	default:
-		if isDigit(content[index]) {
-			err := scanDigit(content, &index, &t)
+		if isDigit(content[s.currentIndex]) {
+			err := scanDigit(content, &s.currentIndex, &t)
 			if err != nil {
-				return token{}, index, err
+				return s.currentIndex, err
 			}
-		} else if isAlpha(content[index]) {
-			scanAlpha(content, &index, &t)
+		} else if isAlpha(content[s.currentIndex]) {
+			scanAlpha(content, &s.currentIndex, &t)
 		} else {
-			return token{}, index, fmt.Errorf("token/caracter no reconocido: '%c'", content[index])
+			return s.currentIndex, fmt.Errorf("token/caracter no reconocido: '%c'", content[s.currentIndex])
 		}
 	}
 
-	return t, index, nil
+	s.tokens = append(s.tokens, t)
+	return s.currentIndex, nil
 }
 
 func scanDigit(content []byte, index *int, t *token) error {
