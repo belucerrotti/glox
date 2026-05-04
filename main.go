@@ -28,14 +28,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if mode != "" {
-		switch mode {
-		case "--scanner":
-			for _, token := range tokens {
-				fmt.Printf("%s<%s> ", token.name, token.value)
-			}
+	if mode == "--scanner" {
+		for _, token := range tokens {
+			fmt.Printf("%s<%s> ", token.name, token.value)
 		}
+		println()
+		os.Exit(0)
 	}
 
-	println()
 }
