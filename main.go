@@ -12,6 +12,12 @@ func main() {
 	}
 
 	bytes, err := os.ReadFile(os.Args[1])
+
+	mode := ""
+	if len(os.Args) > 2 {
+		mode = os.Args[2]
+	}
+
 	if err != nil {
 		println("error leyendo el file: ", err)
 	}
@@ -22,8 +28,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	for _, token := range tokens {
-		fmt.Printf("%s<%s> ", token.name, token.value)
+	if mode != "" {
+		switch mode {
+		case "--scanner":
+			for _, token := range tokens {
+				fmt.Printf("%s<%s> ", token.name, token.value)
+			}
+		}
 	}
+
 	println()
 }
