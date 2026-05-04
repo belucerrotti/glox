@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 type TokenType int
 
@@ -23,7 +26,6 @@ const (
 	EQUALS_EQUALS
 	NOTEQUAL
 	BANG
-	BANG_EQUALS
 	LESS_THAN
 	LESS_EQUALS
 	GREATER_THAN
@@ -80,7 +82,6 @@ var tokenNames = map[TokenType]string{
 	EQUALS_EQUALS:  "EQUALS_EQUALS",
 	NOTEQUAL:       "NOTEQUAL",
 	BANG:           "BANG",
-	BANG_EQUALS:    "BANG_EQUALS",
 	LESS_THAN:      "LESS_THAN",
 	LESS_EQUALS:    "LESS_EQUALS",
 	GREATER_THAN:   "GREATER_THAN",
@@ -138,10 +139,12 @@ var keywords = map[string]TokenType{
 }
 
 type token struct {
-	tokenType TokenType
-	name      string
-	value     string
-	valueInt  int
+	tokenType  TokenType
+	name       string
+	value      string
+	valueInt   int
+	valueFloat float64
+	line       int
 }
 
 type scanner struct {
@@ -227,7 +230,7 @@ func (s *scanner) scanToken(content []byte, index int) (token, int, error) {
 		}
 	case '!':
 		if index+1 < len(content) && content[index+1] == '=' {
-			t = token{tokenType: BANG_EQUALS, name: tokenNames[BANG_EQUALS], value: "!="}
+			t = token{tokenType: NOTEQUAL, name: tokenNames[NOTEQUAL], value: "!="}
 			index++
 		} else {
 			t = token{tokenType: BANG, name: tokenNames[BANG], value: string(content[index])}
@@ -292,11 +295,17 @@ func scanDigit(content []byte, index *int, t *token) error {
 	t.tokenType = NUMBER
 	t.name = tokenNames[NUMBER]
 	(*index)--
+	if isDecimal {
+		f, err := strconv.ParseFloat(t.value, 64)
+		if err == nil {
+			t.valueFloat = f
+		}
+	}
 	return nil
 }
 
 func scanAlpha(content []byte, index *int, t *token) {
-	for *index < len(content) && isAlpha(content[*index]) {
+	for *index < len(content) && isAlphaNumeric(content[*index]) {
 		t.value += string(content[*index])
 		(*index)++
 	}
@@ -315,4 +324,8 @@ func isDigit(c byte) bool {
 
 func isAlpha(c byte) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+}
+
+func isAlphaNumeric(c byte) bool {
+	return isAlpha(c) || isDigit(c)
 }
