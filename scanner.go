@@ -157,14 +157,15 @@ func createScanner() *scanner {
 func (s *scanner) scan(content []byte) ([]token, error) {
 	var tokens = []token{}
 	for i := 0; i < len(content); i++ {
-		if content[i] != ' ' {
-			t, newIndex, err := s.scanToken(content, i)
-			if err != nil {
-				return nil, err
-			}
-			i = newIndex
-			tokens = append(tokens, t)
+		if content[i] == ' ' || content[i] == '\t' || content[i] == '\r' || content[i] == '\n' {
+			continue
 		}
+		t, newIndex, err := s.scanToken(content, i)
+		if err != nil {
+			return nil, err
+		}
+		i = newIndex
+		tokens = append(tokens, t)
 	}
 	return tokens, nil
 }
@@ -299,6 +300,7 @@ func scanAlpha(content []byte, index *int, t *token) {
 		t.value += string(content[*index])
 		(*index)++
 	}
+	(*index)--
 	t.tokenType = IDENTIFIER
 	t.name = tokenNames[IDENTIFIER]
 	if tokenType, ok := keywords[t.value]; ok {
