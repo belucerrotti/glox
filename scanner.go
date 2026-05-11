@@ -45,6 +45,8 @@ const (
 	STRING
 	IDENTIFIER
 
+	EOF
+
 	AND
 	CLASS
 	ELSE
@@ -100,6 +102,8 @@ var tokenNames = map[TokenType]string{
 	NUMBER:     "NUMBER",
 	STRING:     "STRING",
 	IDENTIFIER: "IDENTIFIER",
+
+	EOF: "EOF",
 
 	AND:    "AND",
 	CLASS:  "CLASS",
@@ -163,21 +167,26 @@ func createScanner() *scanner {
 
 func (s *scanner) scan(content []byte) ([]token, error) {
 	s.content = content
+	currentLine := 1
 	for i := 0; i < len(content); i++ {
 		if content[i] == ' ' || content[i] == '\t' || content[i] == '\r' || content[i] == '\n' {
+			if content[i] == '\n' {
+				currentLine++
+			}
 			continue
 		}
 		s.currentIndex = i
-		newIndex, err := s.scanTokens()
+		newIndex, err := s.scanTokens(currentLine)
 		if err != nil {
 			return nil, err
 		}
 		i = newIndex
 	}
+	s.tokens = append(s.tokens, token{tokenType: EOF, name: tokenNames[EOF], value: "", line: currentLine})
 	return s.tokens, nil
 }
 
-func (s *scanner) scanTokens() (int, error) {
+func (s *scanner) scanTokens(currentLine int) (int, error) {
 	content := s.content
 
 	var t = token{}
@@ -195,7 +204,7 @@ func (s *scanner) scanTokens() (int, error) {
 				end++
 			}
 			t = token{tokenType: COMMENT, name: tokenNames[COMMENT], value: string(content[start:end])}
-			s.currentIndex = end
+			s.currentIndex = end - 1
 		} else {
 			t = token{tokenType: DIVIDE, name: tokenNames[DIVIDE], value: string(content[s.currentIndex])}
 		}
@@ -279,6 +288,7 @@ func (s *scanner) scanTokens() (int, error) {
 		}
 	}
 
+	t.line = currentLine
 	s.tokens = append(s.tokens, t)
 	return s.currentIndex, nil
 }
