@@ -36,9 +36,23 @@ type AssignExpr struct {
 	value Expr
 }
 
+type LogicalExpr struct {
+	left     Expr
+	operator token
+	right    Expr
+}
+
+type CallExpr struct {
+	callee    Expr
+	paren     token
+	arguments []Expr
+}
+
 func (b *BinaryExpr) exprNode()   {}
 func (u *UnaryExpr) exprNode()    {}
 func (g *GroupingExpr) exprNode() {}
 func (l *LiteralExpr) exprNode()  {}
 func (v *VariableExpr) exprNode() {}
 func (a *AssignExpr) exprNode()   {}
+func (l *LogicalExpr) exprNode()  {}
+func (c *CallExpr) exprNode()     {}
