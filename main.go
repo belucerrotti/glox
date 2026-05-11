@@ -21,6 +21,8 @@ func main() {
 	if err != nil {
 		println("error leyendo el file: ", err)
 	}
+
+	//SCANNEO
 	scanner := createScanner()
 	tokens, err := scanner.scan(bytes)
 	if err != nil {
@@ -30,9 +32,24 @@ func main() {
 
 	if mode == "--scanner" {
 		for _, token := range tokens {
-			fmt.Printf("%s<%s> ", token.name, token.value)
+			fmt.Printf("linea %d: %s <%s>\n", token.line, token.name, token.value)
 		}
 		println()
+		os.Exit(0)
+	}
+
+	// PARSEO
+	parser := createParser()
+	expressions, err := parser.parse(tokens)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error de parseo:", err)
+		os.Exit(1)
+	}
+
+	if mode == "--parser" {
+		for _, expr := range expressions {
+			fmt.Printf("%#v\n", expr)
+		}
 		os.Exit(0)
 	}
 
