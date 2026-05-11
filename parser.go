@@ -61,6 +61,8 @@ func (p *parser) printStatement() (Stmt, error) {
 
 	if !p.matches(SEMICOLON) {
 		return nil, fmt.Errorf("line %d: expected ';' but found '%s'", p.currentToken().line, p.currentToken().value)
+	} else {
+		p.current++
 	}
 
 	return &PrintStmt{expr: expr}, nil
@@ -78,43 +80,96 @@ func (p *parser) parseEquality() (Expr, error) {
 		return nil, err
 	}
 	for p.matches(EQUALS_EQUALS) || p.matches(NOTEQUAL) {
-		op := p.tokens[p.current]
+		operator := p.tokens[p.current]
 		p.current++
 		right, err := p.parseComparison()
 		if err != nil {
 			return nil, err
 		}
-		left = &BinaryExpr{left: left, operator: op, right: right}
+		left = &BinaryExpr{left: left, operator: operator, right: right}
 	}
 	return left, nil
 }
 
 // comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )*
 func (p *parser) parseComparison() (Expr, error) {
-	// todo
-	return nil, nil
+	left, err := p.parseTerm()
+	if err != nil {
+		return nil, err
+	}
+	if p.matches(GREATER_THAN) || p.matches(GREATER_EQUALS) || p.matches(LESS_THAN) || p.matches(LESS_EQUALS) {
+		operator := p.tokens[p.current]
+		p.current++
+		right, err := p.parseTerm()
+		if err != nil {
+			return nil, err
+		}
+		return &BinaryExpr{left: left, operator: operator, right: right}, nil
+	}
+
+	return left, nil
 }
 
 // term → factor ( ( "+" | "-" ) factor )*
 func (p *parser) parseTerm() (Expr, error) {
-	// todo
-	return nil, nil
+	left, err := p.parseFactor()
+	if err != nil {
+		return nil, err
+	}
+	if p.matches(PLUS) || p.matches(MINUS) {
+		operator := p.tokens[p.current]
+		p.current++
+		right, err := p.parseFactor()
+		if err != nil {
+			return nil, err
+		}
+		return &BinaryExpr{left: left, operator: operator, right: right}, nil
+	}
+
+	return left, nil
 }
 
 // factor → unary ( ( "*" | "/" ) unary )*
 func (p *parser) parseFactor() (Expr, error) {
-	// todo
-	return nil, nil
+	left, err := p.parseUnary()
+	if err != nil {
+		return nil, err
+	}
+	if p.matches(STAR) || p.matches(DIVIDE) {
+		operator := p.tokens[p.current]
+		p.current++
+		right, err := p.parseUnary()
+		if err != nil {
+			return nil, err
+		}
+		return &BinaryExpr{left: left, operator: operator, right: right}, nil
+	}
+
+	return left, nil
 }
 
 // unary → ( "!" | "-" ) unary | primary
 func (p *parser) parseUnary() (Expr, error) {
-	// todo
-	return nil, nil
+	if p.matches(BANG) || p.matches(MINUS) {
+		operator := p.tokens[p.current]
+		p.current++
+		right, err := p.parsePrimary()
+		if err != nil {
+			return nil, err
+		}
+		return &BinaryExpr{operator: operator, right: right}, nil
+	}
+
+	return p.parsePrimary()
 }
 
 // primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
 func (p *parser) parsePrimary() (Expr, error) {
-	// todo
+	if p.matches(NUMBER) || p.matches(STRING) || p.matches(TRUE) || p.matches(FALSE) || p.matches(NIL) {
+		p.current++
+		return &LiteralExpr{value: p.tokens[p.current-1]}, nil
+	}
+
+	// todo: grouping "(expression)"
 	return nil, nil
 }

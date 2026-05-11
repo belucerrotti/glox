@@ -36,6 +36,7 @@ type AssignExpr struct {
 	value Expr
 }
 
+// and/or (si el left ya define, no se lee el right)
 type LogicalExpr struct {
 	left     Expr
 	operator token
