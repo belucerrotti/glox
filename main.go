@@ -40,17 +40,18 @@ func main() {
 
 	// PARSEO
 	parser := createParser()
-	expressions, err := parser.parse(tokens)
+	statements, err := parser.parse(tokens)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error de parseo:", err)
 		os.Exit(1)
 	}
 
 	if mode == "--parser" {
-		for _, expr := range expressions {
-			fmt.Printf("%#v\n", expr)
+		for _, stmt := range statements {
+			fmt.Printf("%#v\n", stmt)
 		}
 		os.Exit(0)
 	}
 
+	os.Exit(0)
 }
