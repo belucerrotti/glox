@@ -27,15 +27,6 @@ type LiteralExpr struct {
 	value token
 }
 
-type VariableExpr struct {
-	name token
-}
-
-type AssignExpr struct {
-	name  token
-	value Expr
-}
-
 // and/or (si el left ya define, no se lee el right)
 type LogicalExpr struct {
 	left     Expr
@@ -53,7 +44,5 @@ func (b *BinaryExpr) exprNode()   {}
 func (u *UnaryExpr) exprNode()    {}
 func (g *GroupingExpr) exprNode() {}
 func (l *LiteralExpr) exprNode()  {}
-func (v *VariableExpr) exprNode() {}
-func (a *AssignExpr) exprNode()   {}
 func (l *LogicalExpr) exprNode()  {}
 func (c *CallExpr) exprNode()     {}

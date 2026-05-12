@@ -49,7 +49,55 @@ func (p *parser) getStatement() (Stmt, error) {
 	if p.matches(PRINT) {
 		return p.printStatement()
 	}
-	return nil, fmt.Errorf("line %d: unexpected token '%s'", p.currentToken().line, p.currentToken().value)
+	if p.matches(VAR) {
+		return p.varDeclaration()
+	}
+	if p.matches(FUN) {
+		return p.funDeclaration()
+	}
+	// if p.matches(RETURN) {
+	// 	return p.returnStatement()
+	// }
+	// if p.matches(IF) {
+	// 	return p.ifStatement()
+	// }
+	// if p.matches(WHILE) {
+	// 	return p.whileStatement()
+	// }
+	// if p.matches(FOR) {
+	// 	return p.forStatement()
+	// }
+	// if p.matches(LEFT_BRACE) {
+	// 	return p.blockStatement()
+	// }
+
+	return p.expressionStatement()
+}
+
+func (p *parser) funDeclaration() (Stmt, error) {
+	p.current++
+	return nil, nil
+}
+
+func (p *parser) varDeclaration() (Stmt, error) {
+	p.current++ // consumo el 'var'
+
+	name := p.currentToken()
+	if !p.matches(IDENTIFIER) {
+		return nil, fmt.Errorf("line %d: expected IDENTIFIER but found '%s'", p.currentToken().line, p.currentToken().value)
+	} else {
+		p.current++
+		if p.matches(EQUALS) {
+			p.current++
+			expr, err := p.parseExpression()
+			if err != nil {
+				return nil, err
+			}
+			return &VarDecl{name: name, value: expr}, nil
+		}
+	}
+
+	return &VarDecl{name: name}, nil
 }
 
 func (p *parser) printStatement() (Stmt, error) {
@@ -66,6 +114,21 @@ func (p *parser) printStatement() (Stmt, error) {
 	}
 
 	return &PrintStmt{expr: expr}, nil
+}
+
+func (p *parser) expressionStatement() (Stmt, error) {
+	expr, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.matches(SEMICOLON) {
+		return nil, fmt.Errorf("line %d: expected ';' but found '%s'", p.currentToken().line, p.currentToken().value)
+	} else {
+		p.current++
+	}
+
+	return &ExpressionStmt{expr: expr}, nil
 }
 
 // expression → equality
