@@ -39,8 +39,8 @@ func main() {
 	}
 
 	// PARSEO
-	parser := createParser()
-	statements, err := parser.parse(tokens)
+	parser := createParser(tokens)
+	statements, err := parser.parse()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error de parseo:", err)
 		os.Exit(1)

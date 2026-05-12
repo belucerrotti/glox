@@ -15,15 +15,14 @@ func (p *parser) isAtEnd() bool {
 	return p.current >= len(p.tokens) || p.currentToken().tokenType == EOF
 }
 
-func createParser() *parser {
+func createParser(t []token) *parser {
 	return &parser{
-		tokens:  []token{},
+		tokens:  t,
 		current: 0,
 	}
 }
 
-func (p *parser) parse(tokens []token) ([]Stmt, error) {
-	p.tokens = tokens
+func (p *parser) parse() ([]Stmt, error) {
 	p.current = 0
 	var statements []Stmt
 
@@ -55,9 +54,9 @@ func (p *parser) getStatement() (Stmt, error) {
 	if p.matches(FUN) {
 		return p.funDeclaration()
 	}
-	// if p.matches(RETURN) {
-	// 	return p.returnStatement()
-	// }
+	if p.matches(RETURN) {
+		return p.returnStatement()
+	}
 	// if p.matches(IF) {
 	// 	return p.ifStatement()
 	// }
@@ -74,9 +73,68 @@ func (p *parser) getStatement() (Stmt, error) {
 	return p.expressionStatement()
 }
 
+func (p *parser) returnStatement() (Stmt, error) {
+	if p.isAtEnd() {
+		return nil, fmt.Errorf("line %d: expected return value but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+	return p.expressionStatement()
+}
+
 func (p *parser) funDeclaration() (Stmt, error) {
-	p.current++
-	return nil, nil
+	println("entré a fun")
+	funName := p.currentToken()
+	if !p.matches(IDENTIFIER) {
+		return nil, fmt.Errorf("line %d: expected IDENTIFIER but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+
+	println("la funName es " + funName.value)
+
+	if !p.matches(LEFT_PAREN) {
+		return nil, fmt.Errorf("line %d: expected '(' but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+
+	parameters := []token{}
+
+	for !p.isAtEnd() && p.matches(IDENTIFIER) {
+		parameters = append(parameters, p.tokens[p.current-1])
+
+		if p.matches(COMMA) {
+			if !p.matches(IDENTIFIER) {
+				return nil, fmt.Errorf("line %d: expected IDENTIFIER but found '%s'", p.currentToken().line, p.currentToken().value)
+			}
+			continue
+		}
+	}
+
+	println("parameters:")
+	for i := 0; i < len(parameters); i++ {
+		println(parameters[i].value)
+	}
+
+	if !p.matches(RIGHT_PAREN) {
+		return nil, fmt.Errorf("line %d: expected ')' but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+
+	body := []Stmt{}
+
+	if !p.matches(LEFT_BRACE) {
+		return nil, fmt.Errorf("line %d: expected '{' but found '%s'", p.currentToken().line, p.currentToken().value)
+	} else {
+		for !p.isAtEnd() && !p.matches(RIGHT_BRACE) {
+			stmt, err := p.getStatement()
+			if err != nil {
+				return nil, err
+			}
+			body = append(body, stmt)
+		}
+
+		if !p.matches(RIGHT_BRACE) && p.isAtEnd() {
+			return nil, fmt.Errorf("line %d: expected '}' but found '%s'", p.currentToken().line, p.currentToken().value)
+		}
+
+	}
+
+	return &FunDecl{name: funName, parameters: parameters, body: body}, nil
 }
 
 func (p *parser) varDeclaration() (Stmt, error) {
@@ -86,15 +144,17 @@ func (p *parser) varDeclaration() (Stmt, error) {
 	if !p.matches(IDENTIFIER) {
 		return nil, fmt.Errorf("line %d: expected IDENTIFIER but found '%s'", p.currentToken().line, p.currentToken().value)
 	} else {
-		p.current++
 		if p.matches(EQUALS) {
-			p.current++
 			expr, err := p.parseExpression()
 			if err != nil {
 				return nil, err
 			}
 			return &VarDecl{name: name, value: expr}, nil
 		}
+	}
+
+	if !p.matches(SEMICOLON) {
+		return nil, fmt.Errorf("line %d: expected ';' but found '%s'", p.currentToken().line, p.currentToken().value)
 	}
 
 	return &VarDecl{name: name}, nil
@@ -110,7 +170,6 @@ func (p *parser) printStatement() (Stmt, error) {
 	if !p.matches(SEMICOLON) {
 		return nil, fmt.Errorf("line %d: expected ';' but found '%s'", p.currentToken().line, p.currentToken().value)
 	} else {
-		p.current++
 	}
 
 	return &PrintStmt{expr: expr}, nil
@@ -125,7 +184,6 @@ func (p *parser) expressionStatement() (Stmt, error) {
 	if !p.matches(SEMICOLON) {
 		return nil, fmt.Errorf("line %d: expected ';' but found '%s'", p.currentToken().line, p.currentToken().value)
 	} else {
-		p.current++
 	}
 
 	return &ExpressionStmt{expr: expr}, nil
@@ -144,7 +202,6 @@ func (p *parser) parseEquality() (Expr, error) {
 	}
 	for p.matches(EQUALS_EQUALS) || p.matches(NOTEQUAL) {
 		operator := p.tokens[p.current]
-		p.current++
 		right, err := p.parseComparison()
 		if err != nil {
 			return nil, err
@@ -162,7 +219,6 @@ func (p *parser) parseComparison() (Expr, error) {
 	}
 	if p.matches(GREATER_THAN) || p.matches(GREATER_EQUALS) || p.matches(LESS_THAN) || p.matches(LESS_EQUALS) {
 		operator := p.tokens[p.current]
-		p.current++
 		right, err := p.parseTerm()
 		if err != nil {
 			return nil, err
@@ -181,7 +237,6 @@ func (p *parser) parseTerm() (Expr, error) {
 	}
 	if p.matches(PLUS) || p.matches(MINUS) {
 		operator := p.tokens[p.current]
-		p.current++
 		right, err := p.parseFactor()
 		if err != nil {
 			return nil, err
@@ -200,7 +255,6 @@ func (p *parser) parseFactor() (Expr, error) {
 	}
 	if p.matches(STAR) || p.matches(DIVIDE) {
 		operator := p.tokens[p.current]
-		p.current++
 		right, err := p.parseUnary()
 		if err != nil {
 			return nil, err
@@ -215,12 +269,11 @@ func (p *parser) parseFactor() (Expr, error) {
 func (p *parser) parseUnary() (Expr, error) {
 	if p.matches(BANG) || p.matches(MINUS) {
 		operator := p.tokens[p.current]
-		p.current++
 		right, err := p.parsePrimary()
 		if err != nil {
 			return nil, err
 		}
-		return &BinaryExpr{operator: operator, right: right}, nil
+		return &UnaryExpr{operator: operator, right: right}, nil
 	}
 
 	return p.parsePrimary()
@@ -229,7 +282,6 @@ func (p *parser) parseUnary() (Expr, error) {
 // primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
 func (p *parser) parsePrimary() (Expr, error) {
 	if p.matches(NUMBER) || p.matches(STRING) || p.matches(TRUE) || p.matches(FALSE) || p.matches(NIL) {
-		p.current++
 		return &LiteralExpr{value: p.tokens[p.current-1]}, nil
 	}
 
