@@ -48,7 +48,7 @@ func main() {
 
 	if mode == "--parser" {
 		for _, stmt := range statements {
-			fmt.Printf("%#v\n", stmt)
+			fmt.Println(printStmt(stmt, 0))
 		}
 		os.Exit(0)
 	}
