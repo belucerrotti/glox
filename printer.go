@@ -30,6 +30,11 @@ func printExpr(expr Expr, indent int) string {
 		return fmt.Sprintf("GroupingExpr {\n%sexpr: %s\n%s}",
 			inner, printExpr(e.expression, indent+1),
 			pad)
+	case *AssignExpr:
+		return fmt.Sprintf("AssignExpr {\n%sname: %s\n%svalue: %s\n%s}",
+			inner, e.name.value,
+			inner, printExpr(e.value, indent+1),
+			pad)
 	default:
 		return "UnknownExpr"
 	}

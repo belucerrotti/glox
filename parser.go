@@ -61,9 +61,9 @@ func (p *parser) getStatement() (Stmt, error) {
 	if p.matches(IF) {
 		return p.ifStatement()
 	}
-	// if p.matches(WHILE) {
-	// 	return p.whileStatement()
-	// }
+	if p.matches(WHILE) {
+		return p.whileStatement()
+	}
 	// if p.matches(FOR) {
 	// 	return p.forStatement()
 	// }
@@ -87,6 +87,28 @@ func (p *parser) blockStatement() (Stmt, error) {
 		return nil, fmt.Errorf("line %d: expected '}'", p.currentToken().line)
 	}
 	return &BlockStmt{statements: statements}, nil
+}
+
+func (p *parser) whileStatement() (Stmt, error) {
+	if !p.matches(LEFT_PAREN) {
+		return nil, fmt.Errorf("line %d: expected '(' but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+
+	condition, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.matches(RIGHT_PAREN) {
+		return nil, fmt.Errorf("line %d: expected ')' but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+
+	body, err := p.getStatement()
+	if err != nil {
+		return nil, err
+	}
+
+	return &WhileStmt{condition: condition, body: body}, nil
 }
 
 func (p *parser) ifStatement() (Stmt, error) {
@@ -228,9 +250,32 @@ func (p *parser) expressionStatement() (Stmt, error) {
 	return &ExpressionStmt{expr: expr}, nil
 }
 
-// expression → equality
+// expression → assignment
 func (p *parser) parseExpression() (Expr, error) {
-	return p.parseEquality()
+	return p.parseAssignment()
+}
+
+// assignment → IDENTIFIER "=" assignment | equality
+func (p *parser) parseAssignment() (Expr, error) {
+	expr, err := p.parseEquality()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.matches(EQUALS) {
+		value, err := p.parseAssignment()
+		if err != nil {
+			return nil, err
+		}
+
+		if variable, ok := expr.(*VariableExpr); ok {
+			return &AssignExpr{name: variable.name, value: value}, nil
+		}
+
+		return nil, fmt.Errorf("line %d: invalid assignment target", p.currentToken().line)
+	}
+
+	return expr, nil
 }
 
 // equality → comparison ( ( "!=" | "==" ) comparison )*
