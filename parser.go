@@ -86,7 +86,9 @@ func (p *parser) blockStatement() (Stmt, error) {
 		if err != nil {
 			return nil, err
 		}
-		statements = append(statements, stmt)
+		if stmt != nil {
+			statements = append(statements, stmt)
+		}
 	}
 	if p.isAtEnd() && p.tokens[p.current-1].tokenType != RIGHT_BRACE {
 		return nil, fmt.Errorf("line %d: expected '}'", p.currentToken().line)
@@ -236,7 +238,9 @@ func (p *parser) funDeclaration() (Stmt, error) {
 		if err != nil {
 			return nil, err
 		}
-		body = append(body, stmt)
+		if stmt != nil {
+			body = append(body, stmt)
+		}
 	}
 
 	return &FunDecl{name: funName, parameters: parameters, body: body}, nil
