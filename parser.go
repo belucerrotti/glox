@@ -83,7 +83,7 @@ func (p *parser) blockStatement() (Stmt, error) {
 		}
 		statements = append(statements, stmt)
 	}
-	if p.isAtEnd() && !(p.tokens[p.current-1].tokenType != LEFT_BRACE) {
+	if p.isAtEnd() && p.tokens[p.current-1].tokenType != RIGHT_BRACE {
 		return nil, fmt.Errorf("line %d: expected '}'", p.currentToken().line)
 	}
 	return &BlockStmt{statements: statements}, nil
