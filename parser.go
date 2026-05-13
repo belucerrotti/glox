@@ -31,7 +31,9 @@ func (p *parser) parse() ([]Stmt, error) {
 		if err != nil {
 			return nil, err
 		}
-		statements = append(statements, stmt)
+		if stmt != nil {
+			statements = append(statements, stmt)
+		}
 	}
 
 	return statements, nil
@@ -46,6 +48,9 @@ func (p *parser) matches(tokenType TokenType) bool {
 }
 
 func (p *parser) getStatement() (Stmt, error) {
+	if p.matches(COMMENT) {
+		return nil, nil
+	}
 	if p.matches(PRINT) {
 		return p.printStatement()
 	}
