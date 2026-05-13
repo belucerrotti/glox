@@ -40,9 +40,14 @@ type CallExpr struct {
 	arguments []Expr
 }
 
+type VariableExpr struct {
+	name token
+}
+
 func (b *BinaryExpr) exprNode()   {}
 func (u *UnaryExpr) exprNode()    {}
 func (g *GroupingExpr) exprNode() {}
 func (l *LiteralExpr) exprNode()  {}
 func (l *LogicalExpr) exprNode()  {}
 func (c *CallExpr) exprNode()     {}
+func (v *VariableExpr) exprNode() {}

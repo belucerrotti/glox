@@ -58,20 +58,67 @@ func (p *parser) getStatement() (Stmt, error) {
 	if p.matches(RETURN) {
 		return p.returnStatement()
 	}
-	// if p.matches(IF) {
-	// 	return p.ifStatement()
-	// }
+	if p.matches(IF) {
+		return p.ifStatement()
+	}
 	// if p.matches(WHILE) {
 	// 	return p.whileStatement()
 	// }
 	// if p.matches(FOR) {
 	// 	return p.forStatement()
 	// }
-	// if p.matches(LEFT_BRACE) {
-	// 	return p.blockStatement()
-	// }
+	if p.matches(LEFT_BRACE) {
+		return p.blockStatement()
+	}
 
 	return p.expressionStatement()
+}
+
+func (p *parser) blockStatement() (Stmt, error) {
+	statements := []Stmt{}
+	for !p.matches(RIGHT_BRACE) && !p.isAtEnd() {
+		stmt, err := p.getStatement()
+		if err != nil {
+			return nil, err
+		}
+		statements = append(statements, stmt)
+	}
+	if p.isAtEnd() && !(p.tokens[p.current-1].tokenType != LEFT_BRACE) {
+		return nil, fmt.Errorf("line %d: expected '}'", p.currentToken().line)
+	}
+	return &BlockStmt{statements: statements}, nil
+}
+
+func (p *parser) ifStatement() (Stmt, error) {
+	if !p.matches(LEFT_PAREN) {
+		return nil, fmt.Errorf("line %d: expected '(' but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+
+	condition, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.matches(RIGHT_PAREN) {
+		return nil, fmt.Errorf("line %d: expected ')' but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+
+	thenBranch, err := p.getStatement()
+	if err != nil {
+		return nil, err
+	}
+
+	var elseBranch Stmt
+	if p.matches(ELSE) {
+		eb, err := p.getStatement()
+		if err != nil {
+			return nil, err
+		}
+		elseBranch = eb
+	}
+
+	return &IfStmt{condition: condition, thenBranch: thenBranch, elseBranch: elseBranch}, nil
+
 }
 
 func (p *parser) returnStatement() (Stmt, error) {
@@ -284,10 +331,21 @@ func (p *parser) parsePrimary() (Expr, error) {
 	}
 
 	if p.matches(IDENTIFIER) {
-		return &LiteralExpr{value: p.tokens[p.current-1]}, nil
+		return &VariableExpr{name: p.tokens[p.current-1]}, nil
 	}
 
-	// todo: grouping "(expression)"
+	if p.matches(LEFT_PAREN) {
+		e, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+
+		if !p.matches(RIGHT_PAREN) {
+			return nil, fmt.Errorf("line %d: expected ')' but found '%s'", p.currentToken().line, p.currentToken().value)
+		}
+
+		return &GroupingExpr{expression: e}, nil
+	}
 
 	return nil, fmt.Errorf("line %d: expected expression but found '%s'", p.currentToken().line, p.currentToken().value)
 }
