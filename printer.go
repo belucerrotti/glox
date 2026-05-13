@@ -35,6 +35,21 @@ func printExpr(expr Expr, indent int) string {
 			inner, e.name.value,
 			inner, printExpr(e.value, indent+1),
 			pad)
+	case *LogicalExpr:
+		return fmt.Sprintf("LogicalExpr {\n%sleft: %s\n%sop: %s\n%sright: %s\n%s}",
+			inner, printExpr(e.left, indent+1),
+			inner, e.operator.value,
+			inner, printExpr(e.right, indent+1),
+			pad)
+	case *CallExpr:
+		args := []string{}
+		for _, a := range e.arguments {
+			args = append(args, printExpr(a, indent+1))
+		}
+		return fmt.Sprintf("CallExpr {\n%scallee: %s\n%sargs: [%s]\n%s}",
+			inner, printExpr(e.callee, indent+1),
+			inner, strings.Join(args, ", "),
+			pad)
 	default:
 		return "UnknownExpr"
 	}

@@ -293,7 +293,7 @@ func (p *parser) parseExpression() (Expr, error) {
 
 // assignment → IDENTIFIER "=" assignment | equality
 func (p *parser) parseAssignment() (Expr, error) {
-	expr, err := p.parseEquality()
+	expr, err := p.parseLogicalOr()
 	if err != nil {
 		return nil, err
 	}
@@ -312,6 +312,40 @@ func (p *parser) parseAssignment() (Expr, error) {
 	}
 
 	return expr, nil
+}
+
+// logic_or → logic_and ( "or" logic_and )*
+func (p *parser) parseLogicalOr() (Expr, error) {
+	left, err := p.parseLogicalAnd()
+	if err != nil {
+		return nil, err
+	}
+	for p.matches(OR) {
+		operator := p.tokens[p.current-1]
+		right, err := p.parseLogicalAnd()
+		if err != nil {
+			return nil, err
+		}
+		left = &LogicalExpr{left: left, operator: operator, right: right}
+	}
+	return left, nil
+}
+
+// logic_and → equality ( "and" equality )*
+func (p *parser) parseLogicalAnd() (Expr, error) {
+	left, err := p.parseEquality()
+	if err != nil {
+		return nil, err
+	}
+	for p.matches(AND) {
+		operator := p.tokens[p.current-1]
+		right, err := p.parseEquality()
+		if err != nil {
+			return nil, err
+		}
+		left = &LogicalExpr{left: left, operator: operator, right: right}
+	}
+	return left, nil
 }
 
 // equality → comparison ( ( "!=" | "==" ) comparison )*
@@ -402,7 +436,38 @@ func (p *parser) parseUnary() (Expr, error) {
 		return &UnaryExpr{operator: operator, right: right}, nil
 	}
 
-	return p.parsePrimary()
+	return p.parseCall()
+}
+
+// call → primary ( "(" arguments? ")" )*
+func (p *parser) parseCall() (Expr, error) {
+	expr, err := p.parsePrimary()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.matches(LEFT_PAREN) {
+		paren := p.tokens[p.current-1]
+		arguments := []Expr{}
+
+		for !p.isAtEnd() && !p.matches(RIGHT_PAREN) {
+			arg, err := p.parseExpression()
+			if err != nil {
+				return nil, err
+			}
+			arguments = append(arguments, arg)
+			if !p.matches(COMMA) {
+				if !p.matches(RIGHT_PAREN) {
+					return nil, fmt.Errorf("line %d: expected ')' but found '%s'", p.currentToken().line, p.currentToken().value)
+				}
+				break
+			}
+		}
+
+		expr = &CallExpr{callee: expr, paren: paren, arguments: arguments}
+	}
+
+	return expr, nil
 }
 
 // primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
