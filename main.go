@@ -53,7 +53,12 @@ func main() {
 		os.Exit(0)
 	}
 
+	// INTERPRETACIÓN
 	interpreter := createInterpreter(statements)
-	interpreter.interpret()
+	if err := interpreter.interpret(); err != nil {
+		fmt.Fprintln(os.Stderr, "error de ejecución:", err)
+		os.Exit(1)
+	}
+
 	os.Exit(0)
 }
