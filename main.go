@@ -53,5 +53,7 @@ func main() {
 		os.Exit(0)
 	}
 
+	interpreter := createInterpreter(statements)
+	interpreter.interpret()
 	os.Exit(0)
 }
