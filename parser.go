@@ -64,9 +64,9 @@ func (p *parser) getStatement() (Stmt, error) {
 	if p.matches(WHILE) {
 		return p.whileStatement()
 	}
-	// if p.matches(FOR) {
-	// 	return p.forStatement()
-	// }
+	if p.matches(FOR) {
+		return p.forStatement()
+	}
 	if p.matches(LEFT_BRACE) {
 		return p.blockStatement()
 	}
@@ -89,9 +89,45 @@ func (p *parser) blockStatement() (Stmt, error) {
 	return &BlockStmt{statements: statements}, nil
 }
 
+func (p *parser) forStatement() (Stmt, error) {
+	if !p.matches(LEFT_PAREN) {
+		return nil, fmt.Errorf("line %d: expected '(' after 'for'", p.currentToken().line)
+	}
+
+	initializer, err := p.getStatement()
+	if err != nil {
+		return nil, err
+	}
+
+	condition, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.matches(SEMICOLON) {
+		return nil, fmt.Errorf("line %d: expected ';' after 'for' condition", p.currentToken().line)
+	}
+
+	increment, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	if !p.matches(RIGHT_PAREN) {
+		return nil, fmt.Errorf("line %d: expected ')' after 'for' increment", p.currentToken().line)
+	}
+
+	body, err := p.getStatement()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ForStmt{initializer: initializer, condition: condition, increment: increment, body: body}, nil
+}
+
 func (p *parser) whileStatement() (Stmt, error) {
 	if !p.matches(LEFT_PAREN) {
-		return nil, fmt.Errorf("line %d: expected '(' but found '%s'", p.currentToken().line, p.currentToken().value)
+		return nil, fmt.Errorf("line %d: expected '(' after 'while'", p.currentToken().line)
 	}
 
 	condition, err := p.parseExpression()

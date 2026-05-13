@@ -87,6 +87,25 @@ func printStmt(stmt Stmt, indent int) string {
 		}
 		lines = append(lines, pad+"}")
 		return strings.Join(lines, "\n")
+	case *ForStmt:
+		init := "nil"
+		if s.initializer != nil {
+			init = printStmt(s.initializer, indent+1)
+		}
+		cond := "nil"
+		if s.condition != nil {
+			cond = printExpr(s.condition, indent+1)
+		}
+		inc := "nil"
+		if s.increment != nil {
+			inc = printExpr(s.increment, indent+1)
+		}
+		return fmt.Sprintf("ForStmt {\n%sinitializer: %s\n%scondition: %s\n%sincrement: %s\n%sbody: %s\n%s}",
+			inner, init,
+			inner, cond,
+			inner, inc,
+			inner, printStmt(s.body, indent+1),
+			pad)
 	case *WhileStmt:
 		return fmt.Sprintf("WhileStmt {\n%scondition: %s\n%sbody: %s\n%s}",
 			inner, printExpr(s.condition, indent+1),

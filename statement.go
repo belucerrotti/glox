@@ -32,6 +32,13 @@ type WhileStmt struct {
 	body      Stmt
 }
 
+type ForStmt struct {
+	initializer Stmt // puede ser nil
+	condition   Expr // puede ser nil
+	increment   Expr // puede ser nil
+	body        Stmt
+}
+
 type FunDecl struct {
 	name       token
 	parameters []token
@@ -48,5 +55,6 @@ func (v *VarDecl) stmtNode()        {}
 func (b *BlockStmt) stmtNode()      {}
 func (i *IfStmt) stmtNode()         {}
 func (w *WhileStmt) stmtNode()      {}
+func (fr *ForStmt) stmtNode()       {}
 func (f *FunDecl) stmtNode()        {}
 func (r *ReturnStmt) stmtNode()     {}
