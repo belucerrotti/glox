@@ -11,7 +11,6 @@ const (
 	PLUS TokenType = iota
 	MINUS
 	DIVIDE
-	PERCENT
 
 	LEFT_BRACKET
 	RIGHT_BRACKET
@@ -66,10 +65,9 @@ const (
 )
 
 var tokenNames = map[TokenType]string{
-	PLUS:    "PLUS",
-	MINUS:   "MINUS",
-	DIVIDE:  "DIVIDE",
-	PERCENT: "PERCENT",
+	PLUS:   "PLUS",
+	MINUS:  "MINUS",
+	DIVIDE: "DIVIDE",
 
 	LEFT_BRACKET:  "LEFT_BRACKET",
 	RIGHT_BRACKET: "RIGHT_BRACKET",
@@ -207,8 +205,6 @@ func (s *scanner) scanTokens(currentLine int) (int, error) {
 		} else {
 			t = token{tokenType: DIVIDE, name: tokenNames[DIVIDE], value: string(content[s.currentIndex])}
 		}
-	case '%':
-		t = token{tokenType: PERCENT, name: tokenNames[PERCENT], value: string(content[s.currentIndex])}
 	case '?':
 		t = token{tokenType: QUESTION, name: tokenNames[QUESTION], value: string(content[s.currentIndex])}
 	case '&':
