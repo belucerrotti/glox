@@ -41,7 +41,12 @@ func (i *interpreter) execute(statement Stmt) error {
 	switch s := statement.(type) {
 	case *PrintStmt:
 		err = i.executePrintStmt(s.expr)
-
+	case *ExpressionStmt:
+		_, err = i.evaluate(s.expr)
+	case *VarDecl:
+		err = i.executeVarDecl(s)
+	case *BlockStmt:
+		err = i.executeBlockStmt(s.statements)
 	}
 
 	if err != nil {
@@ -65,12 +70,109 @@ func (i *interpreter) evaluate(expression Expr) (token, error) {
 		token, err = i.evaluateBinaryExpression(e.left, e.operator, e.right)
 	case *UnaryExpr:
 		token, err = i.evaluateUnaryExpression(e.operator, e.right)
+	case *VariableExpr:
+		token, err = i.evaluateVariableExpression(e.name)
+	case *AssignExpr:
+		token, err = i.evaluateAssignExpression(e.name, e.value)
+	case *LogicalExpr:
+		token, err = i.evaluateLogicalExpression(e.left, e.operator, e.right)
+		// case *CallExpr:
+		// 	token, err = i.evaluateCallExpression(e.callee, e.paren, e.arguments)
 	}
 
 	if err != nil {
 		return token, err
 	}
 	return token, nil
+}
+
+func (i *interpreter) executeVarDecl(s *VarDecl) error {
+	value := token{tokenType: NIL, value: "nil"}
+	if s.value != nil {
+		v, err := i.evaluate(s.value)
+		if err != nil {
+			return err
+		}
+		value = v
+	}
+	i.environment.variables[s.name.value] = value
+	return nil
+}
+
+func (i *interpreter) executeBlockStmt(statements []Stmt) error {
+	previous := i.environment
+	i.environment = createEnvironment(previous)
+	defer func() { i.environment = previous }()
+
+	for _, stmt := range statements {
+		if err := i.execute(stmt); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (i *interpreter) evaluateCallExpression(callee Expr, paren token, arguments []Expr) (token, error) {
+	// todo
+	return token{}, nil
+}
+
+func (i *interpreter) evaluateVariableExpression(name token) (token, error) {
+	env := i.environment
+	for env != nil {
+		if value, ok := env.variables[name.value]; ok {
+			switch v := value.(type) {
+			case token:
+				return v, nil
+			default:
+				return token{}, fmt.Errorf("line %d: variable '%s' has an invalid value", name.line, name.value)
+			}
+		}
+		env = env.father
+	}
+	return token{}, fmt.Errorf("line %d: variable '%s' is not defined", name.line, name.value)
+}
+
+func (i *interpreter) evaluateAssignExpression(name token, value Expr) (token, error) {
+	valueToken, err := i.evaluate(value)
+	if err != nil {
+		return token{}, err
+	}
+
+	env := i.environment
+	for env != nil {
+		if _, ok := env.variables[name.value]; ok {
+			env.variables[name.value] = valueToken
+			return valueToken, nil
+		}
+		env = env.father
+	}
+
+	return token{}, fmt.Errorf("line %d: variable '%s' is not defined", name.line, name.value)
+}
+
+func (i *interpreter) evaluateLogicalExpression(left Expr, op token, right Expr) (token, error) {
+	leftValue, err := i.evaluate(left)
+	if err != nil {
+		return token{}, err
+	}
+
+	isTruthy := leftValue.tokenType != FALSE && leftValue.tokenType != NIL
+
+	switch op.tokenType {
+	case AND:
+		if !isTruthy {
+			return leftValue, nil
+		}
+	case OR:
+		if isTruthy {
+			return leftValue, nil
+		}
+	default:
+		return token{}, fmt.Errorf("line %d: unknown logical operator '%s'", op.line, op.value)
+	}
+
+	return i.evaluate(right)
 }
 
 func (i *interpreter) evaluateUnaryExpression(op token, right Expr) (token, error) {
