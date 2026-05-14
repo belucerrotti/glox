@@ -79,6 +79,8 @@ func (p *parser) getStatement() (Stmt, error) {
 	return p.expressionStatement()
 }
 
+// STATEMENTS & DECLARATIONS
+
 func (p *parser) blockStatement() (Stmt, error) {
 	statements := []Stmt{}
 	for !p.matches(RIGHT_BRACE) && !p.isAtEnd() {
@@ -294,6 +296,8 @@ func (p *parser) expressionStatement() (Stmt, error) {
 
 	return &ExpressionStmt{expr: expr}, nil
 }
+
+// EXPRESSIONS
 
 // expression → assignment
 func (p *parser) parseExpression() (Expr, error) {
