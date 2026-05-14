@@ -146,7 +146,6 @@ type token struct {
 	tokenType  TokenType
 	name       string
 	value      string
-	valueInt   int
 	valueFloat float64
 	line       int
 }
@@ -306,7 +305,7 @@ func scanDigit(content []byte, index *int, t *token) error {
 			continue
 		}
 		t.value += string(content[*index])
-		t.valueInt = t.valueInt*10 + int(content[*index]) - int('0')
+		t.valueFloat = t.valueFloat*10 + float64(content[*index]) - float64('0')
 		(*index)++
 	}
 	t.tokenType = NUMBER
