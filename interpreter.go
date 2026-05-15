@@ -51,8 +51,8 @@ func (i *interpreter) execute(statement Stmt) error {
 		err = i.executeIfStmt(s)
 	case *WhileStmt:
 		err = i.executeWhileStmt(s)
-		// case *ForStmt:
-		// 	err = i.executeForStmt(s)
+	case *ForStmt:
+		err = i.executeForStmt(s)
 		// case *FunDecl:
 		// 	err = i.executeFunDecl(s)
 		// case *ReturnStmt:
@@ -61,6 +61,36 @@ func (i *interpreter) execute(statement Stmt) error {
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (i *interpreter) executeForStmt(s *ForStmt) error {
+	err := i.execute(s.initializer)
+	if err != nil {
+		return err
+	}
+
+	for true {
+		cond, err := i.evaluateCondition(s.condition)
+		if err != nil {
+			return err
+		}
+
+		if cond {
+			err := i.execute(s.body)
+			if err != nil {
+				return err
+			}
+
+			_, e := i.evaluate(s.increment)
+			if e != nil {
+				return e
+			}
+		} else {
+			return nil
+		}
 	}
 
 	return nil
