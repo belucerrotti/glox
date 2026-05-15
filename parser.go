@@ -103,23 +103,34 @@ func (p *parser) forStatement() (Stmt, error) {
 		return nil, fmt.Errorf("line %d: expected '(' after 'for'", p.currentToken().line)
 	}
 
-	initializer, err := p.getStatement()
-	if err != nil {
-		return nil, err
-	}
-
-	condition, err := p.parseExpression()
-	if err != nil {
-		return nil, err
-	}
-
+	var initializer Stmt
 	if !p.matches(SEMICOLON) {
-		return nil, fmt.Errorf("line %d: expected ';' after 'for' condition", p.currentToken().line)
+		stmt, err := p.getStatement()
+		if err != nil {
+			return nil, err
+		}
+		initializer = stmt
 	}
 
-	increment, err := p.parseExpression()
-	if err != nil {
-		return nil, err
+	var condition Expr
+	if !p.matches(SEMICOLON) {
+		expr, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		condition = expr
+		if !p.matches(SEMICOLON) {
+			return nil, fmt.Errorf("line %d: expected ';' after 'for' condition", p.currentToken().line)
+		}
+	}
+
+	var increment Expr
+	if p.currentToken().tokenType != RIGHT_PAREN {
+		expr, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		increment = expr
 	}
 
 	if !p.matches(RIGHT_PAREN) {

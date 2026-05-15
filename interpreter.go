@@ -96,15 +96,23 @@ func (i *interpreter) executeFunDecl(s *FunDecl) error {
 }
 
 func (i *interpreter) executeForStmt(s *ForStmt) error {
-	err := i.execute(s.initializer)
-	if err != nil {
-		return err
+	if s.initializer != nil {
+		err := i.execute(s.initializer)
+		if err != nil {
+			return err
+		}
 	}
 
 	for true {
-		cond, err := i.evaluateCondition(s.condition)
-		if err != nil {
-			return err
+		var cond bool
+		var err error
+		if s.condition == nil {
+			cond = true
+		} else {
+			cond, err = i.evaluateCondition(s.condition)
+			if err != nil {
+				return err
+			}
 		}
 
 		if cond {
@@ -113,9 +121,11 @@ func (i *interpreter) executeForStmt(s *ForStmt) error {
 				return err
 			}
 
-			_, e := i.evaluate(s.increment)
-			if e != nil {
-				return e
+			if s.increment != nil {
+				_, e := i.evaluate(s.increment)
+				if e != nil {
+					return e
+				}
 			}
 		} else {
 			return nil
@@ -515,9 +525,13 @@ func (i *interpreter) interpret() error {
 
 	for !i.isAtEnd() {
 		err := i.execute(i.statements[i.current])
+		if _, ok := err.(returnValue); ok {
+			return fmt.Errorf("cannot use 'return' outside a function")
+		}
 		if err != nil {
 			return err
 		}
+
 		i.current++
 	}
 
