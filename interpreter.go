@@ -4,6 +4,12 @@ import (
 	"fmt"
 )
 
+type returnValue struct {
+	value token
+}
+
+func (r returnValue) Error() string { return "" }
+
 type interpreter struct {
 	statements  []Stmt
 	current     int
@@ -13,6 +19,12 @@ type interpreter struct {
 type environment struct {
 	variables map[string]interface{}
 	father    *environment
+}
+
+type loxFunction struct {
+	parameters []token
+	body       []Stmt
+	closure    *environment // ← importante
 }
 
 func createEnvironment(father *environment) *environment {
@@ -53,16 +65,29 @@ func (i *interpreter) execute(statement Stmt) error {
 		err = i.executeWhileStmt(s)
 	case *ForStmt:
 		err = i.executeForStmt(s)
-		// case *FunDecl:
-		// 	err = i.executeFunDecl(s)
-		// case *ReturnStmt:
-		// 	err = i.executeReturnStmt(s)
+	case *FunDecl:
+		err = i.executeFunDecl(s)
+	case *ReturnStmt:
+		err = i.executeReturnStmt(s)
 	}
 
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (i *interpreter) executeReturnStmt(s *ReturnStmt) error {
+	value, err := i.evaluate(s.value)
+	if err != nil {
+		return err
+	}
+	return returnValue{value: value}
+}
+
+func (i *interpreter) executeFunDecl(s *FunDecl) error {
+	i.environment.variables[s.name.value] = loxFunction{parameters: s.parameters, body: s.body, closure: i.environment}
 	return nil
 }
 
@@ -163,8 +188,8 @@ func (i *interpreter) evaluate(expression Expr) (token, error) {
 		token, err = i.evaluateAssignExpression(e.name, e.value)
 	case *LogicalExpr:
 		token, err = i.evaluateLogicalExpression(e.left, e.operator, e.right)
-		// case *CallExpr:
-		// 	token, err = i.evaluateCallExpression(e.callee, e.paren, e.arguments)
+	case *CallExpr:
+		token, err = i.evaluateCallExpression(e.callee, e.paren, e.arguments)
 	}
 
 	if err != nil {
@@ -200,8 +225,42 @@ func (i *interpreter) executeBlockStmt(statements []Stmt) error {
 }
 
 func (i *interpreter) evaluateCallExpression(callee Expr, paren token, arguments []Expr) (token, error) {
-	// todo
-	return token{}, nil
+	funName, err := i.evaluate(callee)
+	if err != nil {
+		return token{}, err
+	}
+
+	env := i.environment
+	for env != nil {
+		if value, ok := env.variables[funName.value]; ok {
+			switch v := value.(type) {
+			case loxFunction:
+				e := createEnvironment(v.closure)
+				for idx := 0; idx < len(arguments); idx++ {
+					argVal, err := i.evaluate(arguments[idx])
+					if err != nil {
+						return token{}, err
+					}
+					e.variables[v.parameters[idx].value] = argVal
+				}
+				prev := i.environment
+				i.environment = e
+				err := i.executeBlockStmt(v.body)
+				i.environment = prev
+				if rv, ok := err.(returnValue); ok {
+					return rv.value, nil
+				}
+				if err != nil {
+					return token{}, err
+				}
+				return token{tokenType: NIL, value: "nil"}, nil
+			default:
+				return token{}, fmt.Errorf("line %d: function '%s' not found", paren.line, funName.value)
+			}
+		}
+		env = env.father
+	}
+	return token{}, fmt.Errorf("line %d: function '%s' is not defined", paren.line, funName.value)
 }
 
 func (i *interpreter) evaluateVariableExpression(name token) (token, error) {
@@ -211,6 +270,8 @@ func (i *interpreter) evaluateVariableExpression(name token) (token, error) {
 			switch v := value.(type) {
 			case token:
 				return v, nil
+			case loxFunction:
+				return token{value: name.value, line: name.line}, nil
 			default:
 				return token{}, fmt.Errorf("line %d: variable '%s' has an invalid value", name.line, name.value)
 			}
