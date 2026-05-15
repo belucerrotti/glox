@@ -47,12 +47,42 @@ func (i *interpreter) execute(statement Stmt) error {
 		err = i.executeVarDecl(s)
 	case *BlockStmt:
 		err = i.executeBlockStmt(s.statements)
+	case *IfStmt:
+		err = i.executeIfStmt(s)
+		// case *WhileStmt:
+		// 	err = i.executeWhileStmt(s)
+		// case *ForStmt:
+		// 	err = i.executeForStmt(s)
+		// case *FunDecl:
+		// 	err = i.executeFunDecl(s)
+		// case *ReturnStmt:
+		// 	err = i.executeReturnStmt(s)
 	}
 
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (i *interpreter) executeIfStmt(s *IfStmt) error {
+	condition, err := i.evaluate(s.condition)
+	if err != nil {
+		return err
+	}
+
+	if condition.tokenType == TRUE {
+		err := i.execute(s.thenBranch)
+		if err != nil {
+			return err
+		}
+	} else if s.thenBranch != nil {
+		err := i.execute(s.elseBranch)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
