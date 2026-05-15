@@ -49,8 +49,8 @@ func (i *interpreter) execute(statement Stmt) error {
 		err = i.executeBlockStmt(s.statements)
 	case *IfStmt:
 		err = i.executeIfStmt(s)
-		// case *WhileStmt:
-		// 	err = i.executeWhileStmt(s)
+	case *WhileStmt:
+		err = i.executeWhileStmt(s)
 		// case *ForStmt:
 		// 	err = i.executeForStmt(s)
 		// case *FunDecl:
@@ -66,13 +66,40 @@ func (i *interpreter) execute(statement Stmt) error {
 	return nil
 }
 
+func (i *interpreter) evaluateCondition(e Expr) (bool, error) {
+	condition, err := i.evaluate(e)
+	if err != nil {
+		return false, err
+	}
+
+	return condition.tokenType == TRUE, nil
+}
+
+func (i *interpreter) executeWhileStmt(s *WhileStmt) error {
+	for true {
+		cond, err := i.evaluateCondition(s.condition)
+		if err != nil {
+			return err
+		}
+		if cond {
+			err := i.execute(s.body)
+			if err != nil {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+	return nil
+}
+
 func (i *interpreter) executeIfStmt(s *IfStmt) error {
-	condition, err := i.evaluate(s.condition)
+	condition, err := i.evaluateCondition(s.condition)
 	if err != nil {
 		return err
 	}
 
-	if condition.tokenType == TRUE {
+	if condition {
 		err := i.execute(s.thenBranch)
 		if err != nil {
 			return err
