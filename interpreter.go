@@ -79,6 +79,10 @@ func (i *interpreter) execute(statement Stmt) error {
 }
 
 func (i *interpreter) executeReturnStmt(s *ReturnStmt) error {
+	if s.value == nil {
+		return returnValue{value: token{tokenType: NIL, value: "nil"}}
+	}
+
 	value, err := i.evaluate(s.value)
 	if err != nil {
 		return err
@@ -159,7 +163,7 @@ func (i *interpreter) executeIfStmt(s *IfStmt) error {
 		if err != nil {
 			return err
 		}
-	} else if s.thenBranch != nil {
+	} else if s.elseBranch != nil {
 		err := i.execute(s.elseBranch)
 		if err != nil {
 			return err
@@ -214,13 +218,15 @@ func (i *interpreter) executeVarDecl(s *VarDecl) error {
 func (i *interpreter) executeBlockStmt(statements []Stmt) error {
 	previous := i.environment
 	i.environment = createEnvironment(previous)
-	defer func() { i.environment = previous }()
 
 	for _, stmt := range statements {
 		if err := i.execute(stmt); err != nil {
+			i.environment = previous
 			return err
 		}
 	}
+
+	i.environment = previous
 	return nil
 }
 
