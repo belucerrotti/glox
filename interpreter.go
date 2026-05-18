@@ -135,13 +135,17 @@ func (i *interpreter) executeForStmt(s *ForStmt) error {
 	return nil
 }
 
+func isTruthy(t token) bool {
+	return t.tokenType != FALSE && t.tokenType != NIL
+}
+
 func (i *interpreter) evaluateCondition(e Expr) (bool, error) {
 	condition, err := i.evaluate(e)
 	if err != nil {
 		return false, err
 	}
 
-	return condition.tokenType == TRUE, nil
+	return isTruthy(condition), nil
 }
 
 func (i *interpreter) executeWhileStmt(s *WhileStmt) error {
@@ -321,15 +325,15 @@ func (i *interpreter) evaluateLogicalExpression(left Expr, op token, right Expr)
 		return token{}, err
 	}
 
-	isTruthy := leftValue.tokenType != FALSE && leftValue.tokenType != NIL
+	truthy := isTruthy(leftValue)
 
 	switch op.tokenType {
 	case AND:
-		if !isTruthy {
+		if !truthy {
 			return leftValue, nil
 		}
 	case OR:
-		if isTruthy {
+		if truthy {
 			return leftValue, nil
 		}
 	default:
@@ -354,8 +358,7 @@ func (i *interpreter) evaluateUnaryExpression(op token, right Expr) (token, erro
 		return token{tokenType: NUMBER, valueFloat: result, value: fmt.Sprintf("%g", result), line: op.line}, nil
 	case BANG:
 		// en Lox, false y nil son falsy, todo lo demás es truthy
-		isTruthy := value.tokenType != FALSE && value.tokenType != NIL
-		if !isTruthy {
+		if !isTruthy(value) {
 			return token{tokenType: TRUE, value: "true", line: op.line}, nil
 		}
 		return token{tokenType: FALSE, value: "false", line: op.line}, nil
