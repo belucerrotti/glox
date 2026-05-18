@@ -255,6 +255,9 @@ func (i *interpreter) evaluateCallExpression(callee Expr, paren token, arguments
 		if value, ok := env.variables[funName.value]; ok {
 			switch v := value.(type) {
 			case loxFunction:
+				if len(arguments) != len(v.parameters) {
+					return token{}, fmt.Errorf("line %d: function '%s' expects %d argument(s) but got %d", paren.line, funName.value, len(v.parameters), len(arguments))
+				}
 				e := createEnvironment(v.closure)
 				for idx := 0; idx < len(arguments); idx++ {
 					argVal, err := i.evaluate(arguments[idx])
