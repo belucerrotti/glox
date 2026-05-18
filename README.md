@@ -1,11 +1,5 @@
 # glox
 
-Intérprete de Lox en Go.
+Intérprete de Lox hecho en Go.
 
-// TODO:
-- Scanner
-- Parser
-- Interprete
-- Declaracion de variables
-- Funciones
-- Control de flujo (if, for, while, and, or)
+Belén Cerrotti [109566]
