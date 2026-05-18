@@ -20,6 +20,7 @@ func main() {
 
 	if err != nil {
 		println("error leyendo el file: ", err)
+		os.Exit(1)
 	}
 
 	//SCANNEO
