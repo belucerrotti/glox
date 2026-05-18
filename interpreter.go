@@ -96,6 +96,10 @@ func (i *interpreter) executeFunDecl(s *FunDecl) error {
 }
 
 func (i *interpreter) executeForStmt(s *ForStmt) error {
+	previous := i.environment
+	i.environment = createEnvironment(previous)
+	defer func() { i.environment = previous }()
+
 	if s.initializer != nil {
 		err := i.execute(s.initializer)
 		if err != nil {
