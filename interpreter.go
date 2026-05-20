@@ -254,35 +254,18 @@ func (i *interpreter) evaluateCallExpression(callee Expr, paren token, arguments
 		return token{}, err
 	}
 
+	if funName.callable != nil {
+		return i.callFunction(funName.callable, funName.value, paren, arguments)
+	}
+
 	env := i.environment
 	for env != nil {
 		if value, ok := env.variables[funName.value]; ok {
 			switch v := value.(type) {
 			case loxFunction:
-				if len(arguments) != len(v.parameters) {
-					return token{}, fmt.Errorf("line %d: function '%s' expects %d argument(s) but got %d", paren.line, funName.value, len(v.parameters), len(arguments))
-				}
-				e := createEnvironment(v.closure)
-				for idx := 0; idx < len(arguments); idx++ {
-					argVal, err := i.evaluate(arguments[idx])
-					if err != nil {
-						return token{}, err
-					}
-					e.variables[v.parameters[idx].value] = argVal
-				}
-				prev := i.environment
-				i.environment = e
-				err := i.executeBlockStmt(v.body)
-				i.environment = prev
-				if rv, ok := err.(returnValue); ok {
-					return rv.value, nil
-				}
-				if err != nil {
-					return token{}, err
-				}
-				return token{tokenType: NIL, value: "nil"}, nil
+				return i.callFunction(&v, funName.value, paren, arguments)
 			default:
-				return token{}, fmt.Errorf("line %d: function '%s' not found", paren.line, funName.value)
+				return token{}, fmt.Errorf("line %d: '%s' is not a function", paren.line, funName.value)
 			}
 		}
 		env = env.father
@@ -290,15 +273,40 @@ func (i *interpreter) evaluateCallExpression(callee Expr, paren token, arguments
 	return token{}, fmt.Errorf("line %d: function '%s' is not defined", paren.line, funName.value)
 }
 
+func (i *interpreter) callFunction(v *loxFunction, name string, paren token, arguments []Expr) (token, error) {
+	if len(arguments) != len(v.parameters) {
+		return token{}, fmt.Errorf("line %d: function '%s' expects %d argument(s) but got %d", paren.line, name, len(v.parameters), len(arguments))
+	}
+	e := createEnvironment(v.closure)
+	for idx := 0; idx < len(arguments); idx++ {
+		argVal, err := i.evaluate(arguments[idx])
+		if err != nil {
+			return token{}, err
+		}
+		e.variables[v.parameters[idx].value] = argVal
+	}
+	prev := i.environment
+	i.environment = e
+	err := i.executeBlockStmt(v.body)
+	i.environment = prev
+	if rv, ok := err.(returnValue); ok {
+		return rv.value, nil
+	}
+	if err != nil {
+		return token{}, err
+	}
+	return token{tokenType: NIL, value: "nil"}, nil
+}
+
 func (i *interpreter) evaluateVariableExpression(name token) (token, error) {
 	env := i.environment
 	for env != nil {
 		if value, ok := env.variables[name.value]; ok {
-			switch v := value.(type) {
+			switch storedValue := value.(type) {
 			case token:
-				return v, nil
+				return storedValue, nil
 			case loxFunction:
-				return token{value: name.value, line: name.line}, nil
+				return token{value: name.value, line: name.line, callable: &storedValue}, nil
 			default:
 				return token{}, fmt.Errorf("line %d: variable '%s' has an invalid value", name.line, name.value)
 			}

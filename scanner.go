@@ -146,6 +146,7 @@ type token struct {
 	value      string
 	valueFloat float64
 	line       int
+	callable   *loxFunction // solo tiene valor cuando el token representa una función
 }
 
 type scanner struct {
