@@ -163,6 +163,8 @@ func createScanner() *scanner {
 
 func (s *scanner) scan(content []byte) ([]token, error) {
 	s.content = content
+	s.tokens = []token{}
+	s.currentIndex = 0
 	currentLine := 1
 	for i := 0; i < len(content); i++ {
 		if content[i] == ' ' || content[i] == '\t' || content[i] == '\r' || content[i] == '\n' {
