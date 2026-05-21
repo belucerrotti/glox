@@ -83,13 +83,6 @@ func (r *resolver) resolveStmt(stmt Stmt) error {
 func (r *resolver) resolveVarDecl(s *VarDecl) error {
 	r.declare(s.name.value)
 	if s.value != nil {
-		if varExpr, ok := s.value.(*VariableExpr); ok {
-			if len(r.scopes) > 0 {
-				if initialized, exists := r.scopes[len(r.scopes)-1][varExpr.name.value]; exists && !initialized {
-					return fmt.Errorf("line %d: cannot read local variable '%s' in its own initializer", s.name.line, s.name.value)
-				}
-			}
-		}
 		if err := r.resolveExpr(s.value); err != nil {
 			return err
 		}
