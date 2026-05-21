@@ -109,7 +109,7 @@ func (i *interpreter) executeForStmt(s *ForStmt) error {
 		}
 	}
 
-	for true {
+	for {
 		var cond bool
 		var err error
 		if s.condition == nil {
@@ -137,8 +137,6 @@ func (i *interpreter) executeForStmt(s *ForStmt) error {
 			return nil
 		}
 	}
-
-	return nil
 }
 
 func isTruthy(t token) bool {
@@ -155,7 +153,7 @@ func (i *interpreter) evaluateCondition(e Expr) (bool, error) {
 }
 
 func (i *interpreter) executeWhileStmt(s *WhileStmt) error {
-	for true {
+	for {
 		cond, err := i.evaluateCondition(s.condition)
 		if err != nil {
 			return err
@@ -169,7 +167,6 @@ func (i *interpreter) executeWhileStmt(s *WhileStmt) error {
 			return nil
 		}
 	}
-	return nil
 }
 
 func (i *interpreter) executeIfStmt(s *IfStmt) error {
@@ -238,15 +235,14 @@ func (i *interpreter) executeVarDecl(s *VarDecl) error {
 func (i *interpreter) executeBlockStmt(statements []Stmt) error {
 	previous := i.environment
 	i.environment = createEnvironment(previous)
+	defer func() { i.environment = previous }()
 
 	for _, stmt := range statements {
 		if err := i.execute(stmt); err != nil {
-			i.environment = previous
 			return err
 		}
 	}
 
-	i.environment = previous
 	return nil
 }
 

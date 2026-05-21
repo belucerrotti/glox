@@ -29,7 +29,6 @@ const (
 	LESS_EQUALS
 	GREATER_THAN
 	GREATER_EQUALS
-	MOD
 
 	COMMA
 	DOT
@@ -86,7 +85,6 @@ var tokenNames = map[TokenType]string{
 	LESS_EQUALS:    "LESS_EQUALS",
 	GREATER_THAN:   "GREATER_THAN",
 	GREATER_EQUALS: "GREATER_EQUALS",
-	MOD:            "MOD",
 
 	COMMA:     "COMMA",
 	DOT:       "DOT",
@@ -305,15 +303,14 @@ func scanDigit(content []byte, index *int, t *token) error {
 		t.valueFloat = t.valueFloat*10 + float64(content[*index]) - float64('0')
 		(*index)++
 	}
+	(*index)--
+	f, err := strconv.ParseFloat(t.value, 64)
+	if err != nil {
+		return fmt.Errorf("número inválido %s", t.value)
+	}
+	t.valueFloat = f
 	t.tokenType = NUMBER
 	t.name = tokenNames[NUMBER]
-	(*index)--
-	if isDecimal {
-		f, err := strconv.ParseFloat(t.value, 64)
-		if err == nil {
-			t.valueFloat = f
-		}
-	}
 	return nil
 }
 
