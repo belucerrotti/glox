@@ -37,3 +37,13 @@ glox programa.lox
 glox programa.lox --scanner   # imprime los tokens
 glox programa.lox --parser    # imprime el AST
 ```
+
+## Tests
+
+Los tests están en `real-tests/` y se corren con:
+
+```bash
+go build . && python3 real-tests/script.py
+```
+
+El script compila el binario local, ejecuta todos los archivos `.lox` de la carpeta en orden y verifica que ninguno imprima `ERROR`.
