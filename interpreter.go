@@ -471,6 +471,15 @@ func (i *interpreter) evaluateBinaryExpression(left Expr, op token, right Expr) 
 			return token{}, fmt.Errorf("line %d: cannot divide strings", leftFinalValue.line)
 		}
 		return token{}, fmt.Errorf("line %d, cannot apply '/' to %s and %s, only between numbers", op.line, leftFinalValue.name, rightFinalValue.name)
+	case MOD:
+		if numericOperation {
+			if rightFinalValue.valueFloat == 0 {
+				return token{}, fmt.Errorf("line %d: modulo by zero", op.line)
+			}
+			result := float64(int(leftFinalValue.valueFloat) % int(rightFinalValue.valueFloat))
+			return token{tokenType: NUMBER, valueFloat: result, value: fmt.Sprintf("%g", result), line: op.line}, nil
+		}
+		return token{}, fmt.Errorf("line %d: '%%' only applies to numbers", op.line)
 	case EQUALS_EQUALS:
 		var result bool
 		if !sameType {

@@ -37,6 +37,7 @@ const (
 	QUESTION
 	AMPERSAND
 	STAR
+	MOD
 	COMMENT
 
 	NUMBER
@@ -93,6 +94,7 @@ var tokenNames = map[TokenType]string{
 	QUESTION:  "QUESTION",
 	AMPERSAND: "AMPERSAND",
 	STAR:      "STAR",
+	MOD:       "MOD",
 	COMMENT:   "COMMENT",
 
 	NUMBER:     "NUMBER",
@@ -206,6 +208,8 @@ func (s *scanner) scanTokens(currentLine int) (int, error) {
 		} else {
 			t = token{tokenType: DIVIDE, name: tokenNames[DIVIDE], value: string(content[s.currentIndex])}
 		}
+	case '%':
+		t = token{tokenType: MOD, name: tokenNames[MOD], value: string(content[s.currentIndex])}
 	case '?':
 		t = token{tokenType: QUESTION, name: tokenNames[QUESTION], value: string(content[s.currentIndex])}
 	case '&':

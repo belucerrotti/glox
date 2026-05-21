@@ -16,8 +16,14 @@ func (p *parser) isAtEnd() bool {
 }
 
 func createParser(t []token) *parser {
+	var filtered []token
+	for _, tok := range t {
+		if tok.tokenType != COMMENT {
+			filtered = append(filtered, tok)
+		}
+	}
 	return &parser{
-		tokens:  t,
+		tokens:  filtered,
 		current: 0,
 	}
 }
@@ -48,9 +54,6 @@ func (p *parser) matches(tokenType TokenType) bool {
 }
 
 func (p *parser) getStatement() (Stmt, error) {
-	if p.matches(COMMENT) {
-		return nil, nil
-	}
 	if p.matches(PRINT) {
 		return p.printStatement()
 	}
@@ -437,7 +440,7 @@ func (p *parser) parseFactor() (Expr, error) {
 		return nil, err
 	}
 
-	for p.matches(STAR) || p.matches(DIVIDE) {
+	for p.matches(STAR) || p.matches(DIVIDE) || p.matches(MOD) {
 		operator := p.tokens[p.current-1]
 		right, err := p.parseUnary()
 		if err != nil {
