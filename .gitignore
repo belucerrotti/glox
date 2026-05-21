@@ -33,7 +33,3 @@ go.work.sum
 
 # glox build artifacts
 glox
-
-# testing .txt and .lox files
-*.txt
-*.lox
