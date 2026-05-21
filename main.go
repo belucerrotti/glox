@@ -54,8 +54,15 @@ func main() {
 		os.Exit(0)
 	}
 
+	// RESOLUCIÓN
+	resolver := createResolver()
+	if err := resolver.resolve(statements); err != nil {
+		fmt.Fprintln(os.Stderr, "error de resolución:", err)
+		os.Exit(1)
+	}
+
 	// INTERPRETACIÓN
-	interpreter := createInterpreter(statements)
+	interpreter := createInterpreter(statements, resolver.distances)
 	if err := interpreter.interpret(); err != nil {
 		fmt.Fprintln(os.Stderr, "error de ejecución:", err)
 		os.Exit(1)

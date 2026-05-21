@@ -14,6 +14,7 @@ type interpreter struct {
 	statements  []Stmt
 	current     int
 	environment *environment
+	distances   map[Expr]int
 }
 
 type environment struct {
@@ -34,11 +35,12 @@ func createEnvironment(father *environment) *environment {
 	}
 }
 
-func createInterpreter(statements []Stmt) *interpreter {
+func createInterpreter(statements []Stmt, distances map[Expr]int) *interpreter {
 	return &interpreter{
 		statements:  statements,
 		current:     0,
 		environment: createEnvironment(nil),
+		distances:   distances,
 	}
 }
 
@@ -205,9 +207,9 @@ func (i *interpreter) evaluate(expression Expr) (token, error) {
 	case *UnaryExpr:
 		token, err = i.evaluateUnaryExpression(e.operator, e.right)
 	case *VariableExpr:
-		token, err = i.evaluateVariableExpression(e.name)
+		token, err = i.evaluateVariableExpression(e.name, e)
 	case *AssignExpr:
-		token, err = i.evaluateAssignExpression(e.name, e.value)
+		token, err = i.evaluateAssignExpression(e.name, e.value, e)
 	case *LogicalExpr:
 		token, err = i.evaluateLogicalExpression(e.left, e.operator, e.right)
 	case *CallExpr:
@@ -287,48 +289,78 @@ func (i *interpreter) callFunction(v *loxFunction, name string, paren token, arg
 	}
 	prev := i.environment
 	i.environment = e
-	err := i.executeBlockStmt(v.body)
+	var execErr error
+	for _, stmt := range v.body {
+		if err := i.execute(stmt); err != nil {
+			execErr = err
+			break
+		}
+	}
 	i.environment = prev
-	if rv, ok := err.(returnValue); ok {
+	if rv, ok := execErr.(returnValue); ok {
 		return rv.value, nil
 	}
-	if err != nil {
-		return token{}, err
+	if execErr != nil {
+		return token{}, execErr
 	}
 	return token{tokenType: NIL, value: "nil"}, nil
 }
 
-func (i *interpreter) evaluateVariableExpression(name token) (token, error) {
+func (i *interpreter) environmentAt(distance int) *environment {
 	env := i.environment
-	for env != nil {
-		if value, ok := env.variables[name.value]; ok {
-			switch storedValue := value.(type) {
-			case token:
-				return storedValue, nil
-			case loxFunction:
-				return token{value: name.value, line: name.line, callable: &storedValue}, nil
-			default:
-				return token{}, fmt.Errorf("line %d: variable '%s' has an invalid value", name.line, name.value)
-			}
-		}
+	for d := 0; d < distance; d++ {
 		env = env.father
+	}
+	return env
+}
+
+func (i *interpreter) lookupVariable(name token, expr Expr) (token, error) {
+	var env *environment
+	if distance, ok := i.distances[expr]; ok {
+		env = i.environmentAt(distance)
+	} else {
+		env = i.environment
+		for env.father != nil {
+			env = env.father
+		}
+	}
+
+	if value, ok := env.variables[name.value]; ok {
+		switch stored := value.(type) {
+		case token:
+			return stored, nil
+		case loxFunction:
+			return token{value: name.value, line: name.line, callable: &stored}, nil
+		default:
+			return token{}, fmt.Errorf("line %d: variable '%s' has an invalid value", name.line, name.value)
+		}
 	}
 	return token{}, fmt.Errorf("line %d: variable '%s' is not defined", name.line, name.value)
 }
 
-func (i *interpreter) evaluateAssignExpression(name token, value Expr) (token, error) {
+func (i *interpreter) evaluateVariableExpression(name token, expr Expr) (token, error) {
+	return i.lookupVariable(name, expr)
+}
+
+func (i *interpreter) evaluateAssignExpression(name token, value Expr, expr Expr) (token, error) {
 	valueToken, err := i.evaluate(value)
 	if err != nil {
 		return token{}, err
 	}
 
-	env := i.environment
-	for env != nil {
-		if _, ok := env.variables[name.value]; ok {
-			env.variables[name.value] = valueToken
-			return valueToken, nil
+	var env *environment
+	if distance, ok := i.distances[expr]; ok {
+		env = i.environmentAt(distance)
+	} else {
+		env = i.environment
+		for env.father != nil {
+			env = env.father
 		}
-		env = env.father
+	}
+
+	if _, ok := env.variables[name.value]; ok {
+		env.variables[name.value] = valueToken
+		return valueToken, nil
 	}
 
 	return token{}, fmt.Errorf("line %d: variable '%s' is not defined", name.line, name.value)
