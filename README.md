@@ -101,7 +101,6 @@ global
 ## Tests
 
 Los tests están en `tests/` y se corren con:
-Los tests están en `tests/` y se corren con:
 
 ```bash
 go build . && python3 tests/script.py
