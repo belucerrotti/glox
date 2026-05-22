@@ -1,0 +1,66 @@
+fun assert(input, expected) {
+    if (input != expected) {
+        print "ERROR";
+    } else {
+        print "OK";
+    }
+}
+
+print "--- SCOPES BASICOS ---";
+
+// variable local no pisa la global
+var x = "global";
+{
+    var x = "local";
+    assert(x, "local");
+}
+assert(x, "global");
+
+// variable definida en bloque no escapa
+var resultado = "afuera";
+{
+    var resultado = "adentro";
+    assert(resultado, "adentro");
+}
+assert(resultado, "afuera");
+
+print "--- CLOSURES ---";
+
+// closure captura el environment en el momento de su creacion
+fun makeCounter() {
+    var count = 0;
+    fun increment() {
+        count = count + 1;
+        return count;
+    }
+    return increment;
+}
+
+var counter = makeCounter();
+assert(counter(), 1);
+assert(counter(), 2);
+assert(counter(), 3);
+
+// dos closures independientes no comparten estado
+var c1 = makeCounter();
+var c2 = makeCounter();
+assert(c1(), 1);
+assert(c1(), 2);
+assert(c2(), 1);  // c2 empieza desde 0, independiente de c1
+
+print "--- SCOPES EN FUNCIONES ---";
+
+// variable del scope externo visible adentro
+var global = "global";
+fun leeGlobal() {
+    return global;
+}
+assert(leeGlobal(), "global");
+
+// parametro oculta variable global del mismo nombre
+var valor = 10;
+fun conParametro(valor) {
+    return valor;
+}
+assert(conParametro(99), 99);
+assert(valor, 10);  // el global no cambia

@@ -100,13 +100,25 @@ global
 
 ## Tests
 
-Los tests están en `real-tests/` y se corren con:
+Los tests están en `tests/` y se corren con:
 
 ```bash
-go build . && python3 real-tests/script.py
+go build . && python3 tests/script.py
 ```
 
-El script ejecuta todos los archivos `.lox` de la carpeta en orden y verifica que ninguno imprima `ERROR`.
+El script ejecuta todos los archivos `.lox` de las carpetas `basic/` y `advanced/` en orden y verifica que ninguno falle.
+
+**basic/**
+- `0-simple` — aritmética, strings, booleanos y comparaciones básicas.
+- `1-flow` — estructuras de control: `if/else`, `while`, `for`.
+- `2-functions` — declaración y llamada de funciones, recursión y valores de retorno.
+- `3-minsky` — simulación de máquina de Minsky (programa no trivial como integración).
+- `4-fizzbuzz` — FizzBuzz clásico como test de control de flujo combinado.
+
+**advanced/**
+- `0-scopes` — scoping léxico, variables locales vs globales, y closures con estado compartido.
+- `1-classes` — clases, `init`, métodos, acceso y asignación de campos, múltiples instancias independientes.
+- `2-class-scopes` — interacción entre `this`, variables locales dentro de métodos, referencias a métodos y llamadas entre métodos.
 
 ---
 
