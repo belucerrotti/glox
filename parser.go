@@ -103,18 +103,15 @@ func (p *parser) classDeclaration() (Stmt, error) {
 	}
 
 	for !p.matches(RIGHT_BRACE) && !p.isAtEnd() {
-		if p.matches(FUN) {
-			fun, err := p.funDeclaration()
-			if err != nil {
-				return nil, err
-			}
-			if funDecl, ok := fun.(*FunDecl); ok && funDecl != nil {
-				methods = append(methods, funDecl)
-			} else {
-				return nil, fmt.Errorf("line %d: expected function declaration", p.currentToken().line)
-			}
+		fun, err := p.funDeclaration()
+		if err != nil {
+			return nil, err
 		}
-
+		if funDecl, ok := fun.(*FunDecl); ok && funDecl != nil {
+			methods = append(methods, funDecl)
+		} else {
+			return nil, fmt.Errorf("line %d: expected method declaration", p.currentToken().line)
+		}
 	}
 
 	return &ClassDecl{name: name, methods: methods}, nil
@@ -556,6 +553,10 @@ func (p *parser) parsePrimary() (Expr, error) {
 	}
 
 	if p.matches(IDENTIFIER) {
+		return &VariableExpr{name: p.tokens[p.current-1]}, nil
+	}
+
+	if p.matches(THIS) {
 		return &VariableExpr{name: p.tokens[p.current-1]}, nil
 	}
 
