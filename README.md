@@ -2,22 +2,23 @@
 
 Intérprete del lenguaje **Lox** escrito en Go.
 
-Belén Cerrotti [109566]
+Alumna: Belén Cerrotti [109566]
 
 ---
 
 ## Diferencias respecto a la implementación de la materia
 
-### ¿Qué agrega glox?
+### ¿Qué agrega glox a plox?
 
+En la rama `/classes` se implementa soporte completo para clases y sus atributos (declaración, instanciación, métodos e `init`), que no está presente en plox.
 
-### ¿Qué no implementa (respecto al Lox completo)?
+Además, se corrigieron dos discrepancias entre plox y Lox estándar:
 
-| Feature | Estado |
-|---|---|
-| Clases y objetos (`class`, `this`, `super`) | ❌ No implementado |
-| Funciones nativas (`clock()`) | ❌ No implementado |
-| Strings con escape sequences (`\n`, `\t`) | ❌ No implementado |
+- **Comparación de booleanos con números**: en Lox, `==` compara tanto valor como tipo, por lo que `true == 1` debe retornar `false`. En plox esa expresión retornaba `true` por herencia del comportamiento de Python. En glox, eso se corrigió.
+
+- **Impresión de booleanos en mayúscula**: plox imprime `True` y `False` (estilo Python), mientras que en Lox los literales booleanos van en minúscula. En glox se imprime correctamente `true` y `false`.
+
+Por otro lado, tanto plox como glox agregan el operador `%` (módulo), que no forma parte del lenguaje Lox estándar.
 
 ---
 
@@ -62,8 +63,7 @@ glox programa.lox --parser    # imprime el AST
 ## Demo
 
 El archivo `demo.lox` muestra las principales features del lenguaje:
-variables, tipos, aritmética (incluido `%`), strings, booleanos,
-`if/else`, `while`, `for`, funciones, recursión, closures y scoping léxico.
+variables, tipos, aritmética, strings, booleanos, `if/else`, `while`, `for`, funciones, recursión, closures y scoping léxico.
 
 ```bash
 go build . && ./glox demo.lox
@@ -100,13 +100,25 @@ global
 
 ## Tests
 
-Los tests están en `real-tests/` y se corren con:
+Los tests están en `tests/` y se corren con:
 
 ```bash
-go build . && python3 real-tests/script.py
+go build . && python3 tests/script.py
 ```
 
-El script ejecuta todos los archivos `.lox` de la carpeta en orden y verifica que ninguno imprima `ERROR`.
+El script ejecuta todos los archivos `.lox` de las carpetas `basic/` y `advanced/` en orden y verifica que ninguno falle.
+
+**basic/** (los de plox)
+- `0-simple` — aritmética, strings, booleanos y comparaciones básicas.
+- `1-flow` — estructuras de control: `if/else`, `while`, `for`.
+- `2-functions` — declaración y llamada de funciones, recursión y valores de retorno.
+- `3-minsky` — simulación de máquina de Minsky (programa no trivial como integración).
+- `4-fizzbuzz` — FizzBuzz clásico como test de control de flujo combinado.
+
+**advanced/**
+- `0-scopes` — scoping léxico, variables locales vs globales, y closures con estado compartido.
+- `1-classes` — clases, `init`, métodos, acceso y asignación de campos, múltiples instancias independientes.
+- `2-class-scopes` — interacción entre `this`, variables locales dentro de métodos, referencias a métodos y llamadas entre métodos.
 
 ---
 
