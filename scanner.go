@@ -33,9 +33,6 @@ const (
 	COMMA
 	DOT
 	SEMICOLON
-	COLON
-	QUESTION
-	AMPERSAND
 	STAR
 	MOD
 	COMMENT
@@ -90,9 +87,6 @@ var tokenNames = map[TokenType]string{
 	COMMA:     "COMMA",
 	DOT:       "DOT",
 	SEMICOLON: "SEMICOLON",
-	COLON:     "COLON",
-	QUESTION:  "QUESTION",
-	AMPERSAND: "AMPERSAND",
 	STAR:      "STAR",
 	MOD:       "MOD",
 	COMMENT:   "COMMENT",
@@ -212,10 +206,6 @@ func (s *scanner) scanTokens(currentLine int) (int, error) {
 		}
 	case '%':
 		t = token{tokenType: MOD, name: tokenNames[MOD], value: string(content[s.currentIndex])}
-	case '?':
-		t = token{tokenType: QUESTION, name: tokenNames[QUESTION], value: string(content[s.currentIndex])}
-	case '&':
-		t = token{tokenType: AMPERSAND, name: tokenNames[AMPERSAND], value: string(content[s.currentIndex])}
 	case '*':
 		t = token{tokenType: STAR, name: tokenNames[STAR], value: string(content[s.currentIndex])}
 	case '(':
@@ -236,8 +226,6 @@ func (s *scanner) scanTokens(currentLine int) (int, error) {
 		t = token{tokenType: DOT, name: tokenNames[DOT], value: string(content[s.currentIndex])}
 	case ';':
 		t = token{tokenType: SEMICOLON, name: tokenNames[SEMICOLON], value: string(content[s.currentIndex])}
-	case ':':
-		t = token{tokenType: COLON, name: tokenNames[COLON], value: string(content[s.currentIndex])}
 	case '=':
 		if s.currentIndex+1 < len(content) && content[s.currentIndex+1] == '=' {
 			t = token{tokenType: EQUALS_EQUALS, name: tokenNames[EQUALS_EQUALS], value: "=="}
