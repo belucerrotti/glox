@@ -105,12 +105,11 @@ Los tests están en `tests/` y se corren con:
 
 ```bash
 go build . && python3 tests/script.py
-go build . && python3 tests/script.py
 ```
 
 El script ejecuta todos los archivos `.lox` de las carpetas `basic/` y `advanced/` en orden y verifica que ninguno falle.
 
-**basic/**
+**basic/** (los de plox)
 - `0-simple` — aritmética, strings, booleanos y comparaciones básicas.
 - `1-flow` — estructuras de control: `if/else`, `while`, `for`.
 - `2-functions` — declaración y llamada de funciones, recursión y valores de retorno.
