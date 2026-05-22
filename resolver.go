@@ -62,6 +62,8 @@ func (r *resolver) resolveStmt(stmt Stmt) error {
 		return r.resolveVarDecl(s)
 	case *FunDecl:
 		return r.resolveFunDecl(s)
+	case *ClassDecl:
+		return r.resolveClassDecl(s)
 	case *BlockStmt:
 		return r.resolveBlockStmt(s)
 	case *ExpressionStmt:
@@ -77,6 +79,20 @@ func (r *resolver) resolveStmt(stmt Stmt) error {
 	case *ForStmt:
 		return r.resolveForStmt(s)
 	}
+	return nil
+}
+
+func (r *resolver) resolveClassDecl(s *ClassDecl) error {
+	r.declare(s.name.value)
+	r.define(s.name.value)
+	r.beginScope()
+	r.scopes[len(r.scopes)-1]["this"] = true
+	for _, method := range s.methods {
+		if err := r.resolveFunction(method); err != nil {
+			return err
+		}
+	}
+	r.endScope()
 	return nil
 }
 
@@ -216,6 +232,13 @@ func (r *resolver) resolveExpr(expr Expr) error {
 				return err
 			}
 		}
+	case *GetExpr:
+		return r.resolveExpr(e.object)
+	case *SetExpr:
+		if err := r.resolveExpr(e.object); err != nil {
+			return err
+		}
+		return r.resolveExpr(e.value)
 	case *LiteralExpr:
 	}
 	return nil

@@ -50,6 +50,17 @@ func printExpr(expr Expr, indent int) string {
 			inner, printExpr(e.callee, indent+1),
 			inner, strings.Join(args, ", "),
 			pad)
+	case *GetExpr:
+		return fmt.Sprintf("GetExpr {\n%sobject: %s\n%sname: %s\n%s}",
+			inner, printExpr(e.object, indent+1),
+			inner, e.name.value,
+			pad)
+	case *SetExpr:
+		return fmt.Sprintf("SetExpr {\n%sobject: %s\n%sname: %s\n%svalue: %s\n%s}",
+			inner, printExpr(e.object, indent+1),
+			inner, e.name.value,
+			inner, printExpr(e.value, indent+1),
+			pad)
 	default:
 		return "UnknownExpr"
 	}
