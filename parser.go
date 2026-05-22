@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type parser struct {
 	tokens  []token
@@ -78,11 +80,45 @@ func (p *parser) getStatement() (Stmt, error) {
 	if p.matches(LEFT_BRACE) {
 		return p.blockStatement()
 	}
+	if p.matches(CLASS) {
+		return p.classDeclaration()
+	}
 
 	return p.expressionStatement()
 }
 
 // STATEMENTS & DECLARATIONS
+
+func (p *parser) classDeclaration() (Stmt, error) {
+	name := p.currentToken()
+
+	if !p.matches(IDENTIFIER) {
+		return nil, fmt.Errorf("line %d: expected IDENTIFIER but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+
+	var methods []*FunDecl
+
+	if !p.matches(LEFT_BRACE) {
+		return nil, fmt.Errorf("line %d: expected '{' but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+
+	for !p.matches(RIGHT_BRACE) && !p.isAtEnd() {
+		if p.matches(FUN) {
+			fun, err := p.funDeclaration()
+			if err != nil {
+				return nil, err
+			}
+			if funDecl, ok := fun.(*FunDecl); ok && funDecl != nil {
+				methods = append(methods, funDecl)
+			} else {
+				return nil, fmt.Errorf("line %d: expected function declaration", p.currentToken().line)
+			}
+		}
+
+	}
+
+	return &ClassDecl{name: name, methods: methods}, nil
+}
 
 func (p *parser) blockStatement() (Stmt, error) {
 	statements := []Stmt{}

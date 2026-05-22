@@ -126,6 +126,14 @@ func printStmt(stmt Stmt, indent int) string {
 			inner, printExpr(s.condition, indent+1),
 			inner, printStmt(s.body, indent+1),
 			pad)
+	case *ClassDecl:
+		lines := []string{fmt.Sprintf("ClassDecl { name: %s", s.name.value)}
+		lines = append(lines, fmt.Sprintf("%smethods:", inner))
+		for i, m := range s.methods {
+			lines = append(lines, fmt.Sprintf("%s  [%d]: %s", inner, i, printStmt(m, indent+2)))
+		}
+		lines = append(lines, pad+"}")
+		return strings.Join(lines, "\n")
 	default:
 		return "UnknownStmt"
 	}
