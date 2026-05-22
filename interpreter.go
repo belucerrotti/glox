@@ -25,7 +25,17 @@ type environment struct {
 type loxFunction struct {
 	parameters []token
 	body       []Stmt
-	closure    *environment // ← importante
+	closure    *environment
+}
+
+type loxClass struct {
+	name    string
+	methods map[string]loxFunction
+}
+
+type loxInstance struct {
+	class  *loxClass
+	fields map[string]interface{}
 }
 
 func createEnvironment(father *environment) *environment {
@@ -71,12 +81,27 @@ func (i *interpreter) execute(statement Stmt) error {
 		err = i.executeFunDecl(s)
 	case *ReturnStmt:
 		err = i.executeReturnStmt(s)
+	case *ClassDecl:
+		err = i.executeClassDecl(s)
 	}
 
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (i *interpreter) executeClassDecl(c *ClassDecl) error {
+	methods := make(map[string]loxFunction)
+	for _, method := range c.methods {
+		methods[method.name.value] = loxFunction{
+			parameters: method.parameters,
+			body:       method.body,
+			closure:    i.environment,
+		}
+	}
+	i.environment.variables[c.name.value] = loxClass{name: c.name.value, methods: methods}
 	return nil
 }
 
@@ -211,12 +236,65 @@ func (i *interpreter) evaluate(expression Expr) (token, error) {
 		token, err = i.evaluateLogicalExpression(e.left, e.operator, e.right)
 	case *CallExpr:
 		token, err = i.evaluateCallExpression(e.callee, e.paren, e.arguments)
+	case *GetExpr:
+		token, err = i.evaluateGetExpr(e.object, e.name)
+	case *SetExpr:
+		token, err = i.evaluateSetExpr(e.object, e.name, e.value)
 	}
 
 	if err != nil {
 		return token, err
 	}
 	return token, nil
+}
+
+func (i *interpreter) evaluateGetExpr(object Expr, name token) (token, error) {
+	ob, err := i.evaluate(object)
+	if err != nil {
+		return token{}, err
+	}
+	if ob.instance == nil {
+		return token{}, fmt.Errorf("line %d: only instances have properties", name.line)
+	}
+	instance := ob.instance
+	if value, ok := instance.fields[name.value]; ok {
+		switch v := value.(type) {
+		case token:
+			return v, nil
+		case loxFunction:
+			return token{value: name.value, line: name.line, callable: &v}, nil
+		default:
+			return token{}, fmt.Errorf("line %d: property '%s' has an invalid value", name.line, name.value)
+		}
+	}
+
+	if method, ok := instance.class.methods[name.value]; ok {
+		thisEnv := createEnvironment(method.closure)
+		thisEnv.variables["this"] = ob
+		m := loxFunction{parameters: method.parameters, body: method.body, closure: thisEnv}
+		return token{value: name.value, line: name.line, callable: &m}, nil
+	}
+	return token{}, fmt.Errorf("line %d: undefined property '%s'", name.line, name.value)
+}
+
+func (i *interpreter) evaluateSetExpr(object Expr, name token, value Expr) (token, error) {
+	ob, err := i.evaluate(object)
+	if err != nil {
+		return token{}, err
+	}
+	if ob.instance == nil {
+		return token{}, fmt.Errorf("line %d: only instances have properties", name.line)
+	}
+	instance := ob.instance
+
+	val, err := i.evaluate(value)
+	if err != nil {
+		return token{}, err
+	}
+
+	// crea el campo si no existe, o lo sobreescribe si ya existe
+	instance.fields[name.value] = val
+	return val, nil
 }
 
 func (i *interpreter) executeVarDecl(s *VarDecl) error {
@@ -247,28 +325,84 @@ func (i *interpreter) executeBlockStmt(statements []Stmt) error {
 }
 
 func (i *interpreter) evaluateCallExpression(callee Expr, paren token, arguments []Expr) (token, error) {
-	funName, err := i.evaluate(callee)
+	name, err := i.evaluate(callee)
 	if err != nil {
 		return token{}, err
 	}
 
-	if funName.callable != nil {
-		return i.callFunction(funName.callable, funName.value, paren, arguments)
+	if name.callable != nil {
+		return i.callFunction(name.callable, name.value, paren, arguments)
+	}
+
+	if name.class != nil {
+		return i.instanceClass(name.class, name.value, paren, arguments)
 	}
 
 	env := i.environment
 	for env != nil {
-		if value, ok := env.variables[funName.value]; ok {
+		if value, ok := env.variables[name.value]; ok {
 			switch v := value.(type) {
 			case loxFunction:
-				return i.callFunction(&v, funName.value, paren, arguments)
+				return i.callFunction(&v, name.value, paren, arguments)
+			case loxClass:
+				return i.instanceClass(&v, name.value, paren, arguments)
 			default:
-				return token{}, fmt.Errorf("line %d: '%s' is not a function", paren.line, funName.value)
+				return token{}, fmt.Errorf("line %d: '%s' is not a function", paren.line, name.value)
 			}
 		}
 		env = env.father
 	}
-	return token{}, fmt.Errorf("line %d: function '%s' is not defined", paren.line, funName.value)
+	return token{}, fmt.Errorf("line %d: function '%s' is not defined", paren.line, name.value)
+}
+
+func (i *interpreter) instanceClass(v *loxClass, name string, paren token, arguments []Expr) (token, error) {
+	instance := &loxInstance{class: v, fields: map[string]interface{}{}}
+	instanceToken := token{tokenType: IDENTIFIER, value: name, line: paren.line, instance: instance}
+
+	if init, ok := v.methods["init"]; ok {
+		_, err := i.callMethod(&init, instanceToken, paren, arguments)
+		if err != nil {
+			return token{}, err
+		}
+	} else if len(arguments) > 0 {
+		return token{}, fmt.Errorf("line %d: class '%s' expects 0 argument(s) but got %d", paren.line, name, len(arguments))
+	}
+
+	return instanceToken, nil
+}
+
+func (i *interpreter) callMethod(v *loxFunction, receiver token, paren token, arguments []Expr) (token, error) {
+	if len(arguments) != len(v.parameters) {
+		return token{}, fmt.Errorf("line %d: method expects %d argument(s) but got %d", paren.line, len(v.parameters), len(arguments))
+	}
+
+	thisEnv := createEnvironment(v.closure)
+	thisEnv.variables["this"] = receiver
+	e := createEnvironment(thisEnv)
+	for idx, param := range v.parameters {
+		argVal, err := i.evaluate(arguments[idx])
+		if err != nil {
+			return token{}, err
+		}
+		e.variables[param.value] = argVal
+	}
+	prev := i.environment
+	i.environment = e
+	var execErr error
+	for _, stmt := range v.body {
+		if err := i.execute(stmt); err != nil {
+			execErr = err
+			break
+		}
+	}
+	i.environment = prev
+	if rv, ok := execErr.(returnValue); ok {
+		return rv.value, nil
+	}
+	if execErr != nil {
+		return token{}, execErr
+	}
+	return receiver, nil
 }
 
 func (i *interpreter) callFunction(v *loxFunction, name string, paren token, arguments []Expr) (token, error) {
@@ -327,6 +461,8 @@ func (i *interpreter) lookupVariable(name token, expr Expr) (token, error) {
 			return stored, nil
 		case loxFunction:
 			return token{value: name.value, line: name.line, callable: &stored}, nil
+		case loxClass:
+			return token{value: name.value, line: name.line, class: &stored}, nil
 		default:
 			return token{}, fmt.Errorf("line %d: variable '%s' has an invalid value", name.line, name.value)
 		}

@@ -17,6 +17,11 @@ type VarDecl struct {
 	value Expr // puede ser nil
 }
 
+type ClassDecl struct {
+	name    token
+	methods []*FunDecl
+}
+
 type BlockStmt struct {
 	statements []Stmt
 }
@@ -52,6 +57,7 @@ type ReturnStmt struct {
 func (e *ExpressionStmt) stmtNode() {}
 func (p *PrintStmt) stmtNode()      {}
 func (v *VarDecl) stmtNode()        {}
+func (c *ClassDecl) stmtNode()      {}
 func (b *BlockStmt) stmtNode()      {}
 func (i *IfStmt) stmtNode()         {}
 func (w *WhileStmt) stmtNode()      {}

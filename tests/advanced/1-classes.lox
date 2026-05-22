@@ -1,0 +1,79 @@
+fun assert(input, expected) {
+    if (input != expected) {
+        print "ERROR";
+    } else {
+        print "OK";
+    }
+}
+
+print "--- CLASES BASICAS ---";
+
+class Punto {
+    init(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    getX() {
+        return this.x;
+    }
+
+    getY() {
+        return this.y;
+    }
+
+    setX(x) {
+        this.x = x;
+    }
+}
+
+var p = Punto(3, 7);
+assert(p.getX(), 3);
+assert(p.getY(), 7);
+
+p.setX(10);
+assert(p.getX(), 10);
+
+// asignacion directa de campo
+p.x = 99;
+assert(p.getX(), 99);
+
+print "--- CAMPOS DINAMICOS ---";
+
+// lox permite agregar campos que no estan en el init
+class Caja {}
+var c = Caja();
+c.contenido = "sorpresa";
+assert(c.contenido, "sorpresa");
+
+print "--- METODOS QUE USAN THIS ---";
+
+class Acumulador {
+    init() {
+        this.total = 0;
+    }
+
+    sumar(n) {
+        this.total = this.total + n;
+    }
+
+    getTotal() {
+        return this.total;
+    }
+}
+
+var acc = Acumulador();
+acc.sumar(5);
+acc.sumar(3);
+acc.sumar(2);
+assert(acc.getTotal(), 10);
+
+print "--- MULTIPLES INSTANCIAS INDEPENDIENTES ---";
+
+var a = Acumulador();
+var b = Acumulador();
+a.sumar(10);
+b.sumar(1);
+a.sumar(10);
+assert(a.getTotal(), 20);
+assert(b.getTotal(), 1);  // b no fue afectado por a

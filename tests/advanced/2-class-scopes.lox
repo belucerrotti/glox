@@ -1,0 +1,76 @@
+fun assert(input, expected) {
+    if (input != expected) {
+        print "ERROR";
+    } else {
+        print "OK";
+    }
+}
+
+print "--- SCOPES DENTRO DE METODOS ---";
+
+var x = "global";
+
+class Prueba {
+    init() {
+        this.x = "instancia";
+    }
+
+    getInstanceX() {
+        return this.x;
+    }
+
+    getGlobalX() {
+        return x;  // captura el x global, no el de la instancia
+    }
+
+    shadowing() {
+        var x = "local al metodo";
+        return x;
+    }
+}
+
+var obj = Prueba();
+assert(obj.getInstanceX(), "instancia");
+assert(obj.getGlobalX(), "global");    // this.x != x global
+assert(obj.shadowing(), "local al metodo");
+assert(x, "global");                   // x global no fue modificado
+
+print "--- THIS EN METODO RETORNADO ---";
+
+// un metodo guardado en variable sigue teniendo acceso a this
+class Contador {
+    init() {
+        this.n = 0;
+    }
+
+    incrementar() {
+        this.n = this.n + 1;
+        return this.n;
+    }
+}
+
+var ctr = Contador();
+var fn = ctr.incrementar;  // guarda referencia al metodo
+assert(fn(), 1);
+assert(fn(), 2);
+assert(ctr.n, 2);   // el mismo objeto fue modificado
+
+print "--- METODO LLAMA A OTRO METODO ---";
+
+class Calculadora {
+    init(base) {
+        this.base = base;
+    }
+
+    doble() {
+        return this.base * 2;
+    }
+
+    cuadruple() {
+        return this.doble() * 2;
+    }
+}
+
+var calc = Calculadora(5);
+assert(calc.doble(), 10);
+assert(calc.cuadruple(), 20);

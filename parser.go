@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type parser struct {
 	tokens  []token
@@ -78,11 +80,42 @@ func (p *parser) getStatement() (Stmt, error) {
 	if p.matches(LEFT_BRACE) {
 		return p.blockStatement()
 	}
+	if p.matches(CLASS) {
+		return p.classDeclaration()
+	}
 
 	return p.expressionStatement()
 }
 
 // STATEMENTS & DECLARATIONS
+
+func (p *parser) classDeclaration() (Stmt, error) {
+	name := p.currentToken()
+
+	if !p.matches(IDENTIFIER) {
+		return nil, fmt.Errorf("line %d: expected IDENTIFIER but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+
+	var methods []*FunDecl
+
+	if !p.matches(LEFT_BRACE) {
+		return nil, fmt.Errorf("line %d: expected '{' but found '%s'", p.currentToken().line, p.currentToken().value)
+	}
+
+	for !p.matches(RIGHT_BRACE) && !p.isAtEnd() {
+		fun, err := p.funDeclaration()
+		if err != nil {
+			return nil, err
+		}
+		if funDecl, ok := fun.(*FunDecl); ok && funDecl != nil {
+			methods = append(methods, funDecl)
+		} else {
+			return nil, fmt.Errorf("line %d: expected method declaration", p.currentToken().line)
+		}
+	}
+
+	return &ClassDecl{name: name, methods: methods}, nil
+}
 
 func (p *parser) blockStatement() (Stmt, error) {
 	statements := []Stmt{}
@@ -335,6 +368,10 @@ func (p *parser) parseAssignment() (Expr, error) {
 			return &AssignExpr{name: variable.name, value: value}, nil
 		}
 
+		if get, ok := expr.(*GetExpr); ok {
+			return &SetExpr{object: get.object, name: get.name, value: value}, nil
+		}
+
 		return nil, fmt.Errorf("line %d: invalid assignment target", p.currentToken().line)
 	}
 
@@ -473,25 +510,37 @@ func (p *parser) parseCall() (Expr, error) {
 		return nil, err
 	}
 
-	for p.matches(LEFT_PAREN) {
-		paren := p.tokens[p.current-1]
-		arguments := []Expr{}
-
-		for !p.isAtEnd() && !p.matches(RIGHT_PAREN) {
-			arg, err := p.parseExpression()
-			if err != nil {
-				return nil, err
+	for {
+		if p.matches(DOT) {
+			name := p.currentToken()
+			if !p.matches(IDENTIFIER) {
+				return nil, fmt.Errorf("line %d: expected property name after '.'", name.line)
 			}
-			arguments = append(arguments, arg)
-			if !p.matches(COMMA) {
-				if !p.matches(RIGHT_PAREN) {
-					return nil, fmt.Errorf("line %d: expected ')' but found '%s'", p.currentToken().line, p.currentToken().value)
+			expr = &GetExpr{object: expr, name: p.tokens[p.current-1]}
+
+		} else if p.matches(LEFT_PAREN) {
+			paren := p.tokens[p.current-1]
+			arguments := []Expr{}
+
+			for !p.isAtEnd() && !p.matches(RIGHT_PAREN) {
+				arg, err := p.parseExpression()
+				if err != nil {
+					return nil, err
 				}
-				break
+				arguments = append(arguments, arg)
+				if !p.matches(COMMA) {
+					if !p.matches(RIGHT_PAREN) {
+						return nil, fmt.Errorf("line %d: expected ')' but found '%s'", p.currentToken().line, p.currentToken().value)
+					}
+					break
+				}
 			}
-		}
 
-		expr = &CallExpr{callee: expr, paren: paren, arguments: arguments}
+			expr = &CallExpr{callee: expr, paren: paren, arguments: arguments}
+
+		} else {
+			break
+		}
 	}
 
 	return expr, nil
@@ -504,6 +553,10 @@ func (p *parser) parsePrimary() (Expr, error) {
 	}
 
 	if p.matches(IDENTIFIER) {
+		return &VariableExpr{name: p.tokens[p.current-1]}, nil
+	}
+
+	if p.matches(THIS) {
 		return &VariableExpr{name: p.tokens[p.current-1]}, nil
 	}
 
