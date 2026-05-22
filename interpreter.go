@@ -236,12 +236,62 @@ func (i *interpreter) evaluate(expression Expr) (token, error) {
 		token, err = i.evaluateLogicalExpression(e.left, e.operator, e.right)
 	case *CallExpr:
 		token, err = i.evaluateCallExpression(e.callee, e.paren, e.arguments)
+	case *GetExpr:
+		token, err = i.evaluateGetExpr(e.object, e.name)
+	case *SetExpr:
+		token, err = i.evaluateSetExpr(e.object, e.name, e.value)
 	}
 
 	if err != nil {
 		return token, err
 	}
 	return token, nil
+}
+
+func (i *interpreter) evaluateGetExpr(object Expr, name token) (token, error) {
+	ob, err := i.evaluate(object)
+	if err != nil {
+		return token{}, err
+	}
+	if ob.instance == nil {
+		return token{}, fmt.Errorf("line %d: only instances have properties", name.line)
+	}
+	instance := ob.instance
+	if value, ok := instance.fields[name.value]; ok {
+		switch v := value.(type) {
+		case token:
+			return v, nil
+		case loxFunction:
+			return token{value: name.value, line: name.line, callable: &v}, nil
+		default:
+			return token{}, fmt.Errorf("line %d: property '%s' has an invalid value", name.line, name.value)
+		}
+	}
+
+	if method, ok := instance.class.methods[name.value]; ok {
+		return token{value: name.value, line: name.line, callable: &method}, nil
+	}
+	return token{}, nil
+}
+
+func (i *interpreter) evaluateSetExpr(object Expr, name token, value Expr) (token, error) {
+	ob, err := i.evaluate(object)
+	if err != nil {
+		return token{}, err
+	}
+	if ob.instance == nil {
+		return token{}, fmt.Errorf("line %d: only instances have properties", name.line)
+	}
+	instance := ob.instance
+
+	val, err := i.evaluate(value)
+	if err != nil {
+		return token{}, err
+	}
+
+	// crea el campo si no existe, o lo sobreescribe si ya existe
+	instance.fields[name.value] = val
+	return val, nil
 }
 
 func (i *interpreter) executeVarDecl(s *VarDecl) error {
