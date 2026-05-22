@@ -1,8 +1,25 @@
 # glox
 
-Intérprete de Lox hecho en Go.
+Intérprete del lenguaje **Lox** escrito en Go.
 
 Belén Cerrotti [109566]
+
+---
+
+## Diferencias respecto a la implementación de la materia
+
+### ¿Qué agrega glox?
+
+
+### ¿Qué no implementa (respecto al Lox completo)?
+
+| Feature | Estado |
+|---|---|
+| Clases y objetos (`class`, `this`, `super`) | ❌ No implementado |
+| Funciones nativas (`clock()`) | ❌ No implementado |
+| Strings con escape sequences (`\n`, `\t`) | ❌ No implementado |
+
+---
 
 ## Instalación
 
@@ -24,6 +41,8 @@ export PATH="$PATH:$HOME/go/bin"
 
 Luego recargá la configuración (`source ~/.bashrc`) o abrí una terminal nueva.
 
+---
+
 ## Uso
 
 ```bash
@@ -38,6 +57,47 @@ glox programa.lox --scanner   # imprime los tokens
 glox programa.lox --parser    # imprime el AST
 ```
 
+---
+
+## Demo
+
+El archivo `demo.lox` muestra las principales features del lenguaje:
+variables, tipos, aritmética (incluido `%`), strings, booleanos,
+`if/else`, `while`, `for`, funciones, recursión, closures y scoping léxico.
+
+```bash
+go build . && ./glox demo.lox
+```
+
+Output esperado:
+```
+13
+7
+30
+3.33333
+1
+Hola, mundo!
+false
+true
+true
+x es mayor a 5
+0
+1
+2
+0
+1
+2
+11
+1
+2
+3
+55
+global
+global
+```
+
+---
+
 ## Tests
 
 Los tests están en `real-tests/` y se corren con:
@@ -46,4 +106,39 @@ Los tests están en `real-tests/` y se corren con:
 go build . && python3 real-tests/script.py
 ```
 
-El script compila el binario local, ejecuta todos los archivos `.lox` de la carpeta en orden y verifica que ninguno imprima `ERROR`.
+El script ejecuta todos los archivos `.lox` de la carpeta en orden y verifica que ninguno imprima `ERROR`.
+
+---
+
+## Benchmark
+
+Loop de **1.000.000 iteraciones** sumando enteros, comparado con lenguajes productivos:
+
+```bash
+# glox
+go build . && time ./glox benchmark.lox
+
+# Python 3
+time python3 -c "i=0;s=0
+while i<1000000: s+=i;i+=1
+print(s)"
+
+# C (gcc -O0, sin optimizaciones)
+cat > /tmp/bench.c << 'EOF'
+#include <stdio.h>
+int main() {
+    long s = 0;
+    for (int i = 0; i < 1000000; i++) s += i;
+    printf("%ld\n", s);
+}
+EOF
+gcc -O0 /tmp/bench.c -o /tmp/bench && time /tmp/bench
+```
+
+| Lenguaje | Tiempo (real) | Notas |
+|---|---|---|
+| C (gcc -O0) | ~0.003s | compilado a código máquina |
+| Python 3.12 | ~0.07s | compilado a bytecode + VM |
+| **glox** | **~0.92s** | tree-walk interpreter |
+
+glox es ~300× más lento que C y ~13× más lento que Python. Esto es esperable: glox es un *tree-walk interpreter*, lo que significa que cada operación requiere recorrer el AST nodo por nodo, hacer un `switch` sobre el tipo, y alocar structs en Go.

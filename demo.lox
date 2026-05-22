@@ -1,0 +1,80 @@
+// =============================================
+// demo.lox — muestra varias partes de glox
+// =============================================
+
+// --- Variables y operaciones básicas ---
+var x = 10;
+var y = 3;
+print x + y;       // 13
+print x - y;       // 7
+print x * y;       // 30
+print x / y;       // 3.33333
+print x % y;       // 1  (módulo, extensión sobre Lox estándar)
+
+// --- Strings ---
+var saludo = "Hola";
+var nombre = "mundo";
+print saludo + ", " + nombre + "!";  // Hola, mundo!
+
+// --- Booleanos y lógica ---
+print true and false;   // false
+print true or false;    // true
+print !false;           // true
+
+// --- Control de flujo ---
+if (x > 5) {
+    print "x es mayor a 5";
+} else {
+    print "x es menor o igual a 5";
+}
+
+// --- While ---
+var i = 0;
+while (i < 3) {
+    print i;
+    i = i + 1;
+}
+
+// --- For ---
+for (var j = 0; j < 3; j = j + 1) {
+    print j;
+}
+
+// --- Funciones ---
+fun suma(a, b) {
+    return a + b;
+}
+print suma(4, 7);   // 11
+
+// --- Closures ---
+fun makeContador() {
+    var count = 0;
+    fun incrementar() {
+        count = count + 1;
+        return count;
+    }
+    return incrementar;
+}
+
+var contador = makeContador();
+print contador();   // 1
+print contador();   // 2
+print contador();   // 3
+
+// --- Recursión ---
+fun fibonacci(n) {
+    if (n <= 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+print fibonacci(10);   // 55
+
+// --- Scoping léxico ---
+var a = "global";
+{
+    fun showA() {
+        print a;
+    }
+    showA();           // global
+    var a = "local";
+    showA();           // global (captura el scope de definición, no de llamada)
+}
