@@ -28,6 +28,16 @@ type loxFunction struct {
 	closure    *environment // ← importante
 }
 
+type loxClass struct {
+	name    string
+	methods map[string]loxFunction
+}
+
+type loxInstance struct {
+	class  *loxClass
+	fields map[string]interface{}
+}
+
 func createEnvironment(father *environment) *environment {
 	return &environment{
 		variables: map[string]interface{}{},
@@ -71,12 +81,27 @@ func (i *interpreter) execute(statement Stmt) error {
 		err = i.executeFunDecl(s)
 	case *ReturnStmt:
 		err = i.executeReturnStmt(s)
+	case *ClassDecl:
+		err = i.executeClassDecl(s)
 	}
 
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (i *interpreter) executeClassDecl(c *ClassDecl) error {
+	methods := make(map[string]loxFunction)
+	for _, method := range c.methods {
+		methods[method.name.value] = loxFunction{
+			parameters: method.parameters,
+			body:       method.body,
+			closure:    i.environment,
+		}
+	}
+	i.environment.variables[c.name.value] = loxClass{name: c.name.value, methods: methods}
 	return nil
 }
 
@@ -247,28 +272,43 @@ func (i *interpreter) executeBlockStmt(statements []Stmt) error {
 }
 
 func (i *interpreter) evaluateCallExpression(callee Expr, paren token, arguments []Expr) (token, error) {
-	funName, err := i.evaluate(callee)
+	name, err := i.evaluate(callee)
 	if err != nil {
 		return token{}, err
 	}
 
-	if funName.callable != nil {
-		return i.callFunction(funName.callable, funName.value, paren, arguments)
+	if name.callable != nil {
+		return i.callFunction(name.callable, name.value, paren, arguments)
 	}
 
 	env := i.environment
 	for env != nil {
-		if value, ok := env.variables[funName.value]; ok {
+		if value, ok := env.variables[name.value]; ok {
 			switch v := value.(type) {
 			case loxFunction:
-				return i.callFunction(&v, funName.value, paren, arguments)
+				return i.callFunction(&v, name.value, paren, arguments)
+			case loxClass:
+				return i.instanceClass(&v, name.value, paren, arguments)
 			default:
-				return token{}, fmt.Errorf("line %d: '%s' is not a function", paren.line, funName.value)
+				return token{}, fmt.Errorf("line %d: '%s' is not a function", paren.line, name.value)
 			}
 		}
 		env = env.father
 	}
-	return token{}, fmt.Errorf("line %d: function '%s' is not defined", paren.line, funName.value)
+	return token{}, fmt.Errorf("line %d: function '%s' is not defined", paren.line, name.value)
+}
+
+func (i *interpreter) instanceClass(v *loxClass, name string, paren token, arguments []Expr) (token, error) {
+	instance := &loxInstance{class: v, fields: map[string]interface{}{}}
+
+	if init, ok := v.methods["init"]; ok {
+		_, err := i.callFunction(&init, "init", paren, arguments)
+		if err != nil {
+			return token{}, err
+		}
+	}
+
+	return token{tokenType: IDENTIFIER, value: name, line: paren.line, instance: instance}, nil
 }
 
 func (i *interpreter) callFunction(v *loxFunction, name string, paren token, arguments []Expr) (token, error) {
