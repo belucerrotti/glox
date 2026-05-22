@@ -39,7 +39,7 @@ type LogicalExpr struct {
 	right    Expr
 }
 
-// llamada a funcion
+// llamada a funcion o clase
 // ej: suma(1, 2)
 type CallExpr struct {
 	callee    Expr
@@ -60,6 +60,19 @@ type AssignExpr struct {
 	value Expr
 }
 
+type GetExpr struct {
+	object Expr
+	name   token
+}
+
+// asignación de propiedad de instancia
+// ej: objeto.campo = valor
+type SetExpr struct {
+	object Expr
+	name   token
+	value  Expr
+}
+
 func (b *BinaryExpr) exprNode()   {}
 func (u *UnaryExpr) exprNode()    {}
 func (g *GroupingExpr) exprNode() {}
@@ -68,3 +81,5 @@ func (l *LogicalExpr) exprNode()  {}
 func (c *CallExpr) exprNode()     {}
 func (v *VariableExpr) exprNode() {}
 func (a *AssignExpr) exprNode()   {}
+func (g *GetExpr) exprNode()      {}
+func (s *SetExpr) exprNode()      {}

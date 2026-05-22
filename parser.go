@@ -371,6 +371,10 @@ func (p *parser) parseAssignment() (Expr, error) {
 			return &AssignExpr{name: variable.name, value: value}, nil
 		}
 
+		if get, ok := expr.(*GetExpr); ok {
+			return &SetExpr{object: get.object, name: get.name, value: value}, nil
+		}
+
 		return nil, fmt.Errorf("line %d: invalid assignment target", p.currentToken().line)
 	}
 
@@ -509,25 +513,37 @@ func (p *parser) parseCall() (Expr, error) {
 		return nil, err
 	}
 
-	for p.matches(LEFT_PAREN) {
-		paren := p.tokens[p.current-1]
-		arguments := []Expr{}
-
-		for !p.isAtEnd() && !p.matches(RIGHT_PAREN) {
-			arg, err := p.parseExpression()
-			if err != nil {
-				return nil, err
+	for {
+		if p.matches(DOT) {
+			name := p.currentToken()
+			if !p.matches(IDENTIFIER) {
+				return nil, fmt.Errorf("line %d: expected property name after '.'", name.line)
 			}
-			arguments = append(arguments, arg)
-			if !p.matches(COMMA) {
-				if !p.matches(RIGHT_PAREN) {
-					return nil, fmt.Errorf("line %d: expected ')' but found '%s'", p.currentToken().line, p.currentToken().value)
+			expr = &GetExpr{object: expr, name: p.tokens[p.current-1]}
+
+		} else if p.matches(LEFT_PAREN) {
+			paren := p.tokens[p.current-1]
+			arguments := []Expr{}
+
+			for !p.isAtEnd() && !p.matches(RIGHT_PAREN) {
+				arg, err := p.parseExpression()
+				if err != nil {
+					return nil, err
 				}
-				break
+				arguments = append(arguments, arg)
+				if !p.matches(COMMA) {
+					if !p.matches(RIGHT_PAREN) {
+						return nil, fmt.Errorf("line %d: expected ')' but found '%s'", p.currentToken().line, p.currentToken().value)
+					}
+					break
+				}
 			}
-		}
 
-		expr = &CallExpr{callee: expr, paren: paren, arguments: arguments}
+			expr = &CallExpr{callee: expr, paren: paren, arguments: arguments}
+
+		} else {
+			break
+		}
 	}
 
 	return expr, nil
